@@ -727,14 +727,15 @@ function thLayout(notes, seed) {  // positions libres, par phrases (deux notes e
   for (const p of phrases) {
     const n = p.length, span = p.at(-1)[0].t - p[0][0].t, r = seeded((n * 131 + Math.round(span * 10) * 17 + p[0][0].lane * 7 + (seed | 0)) | 0);
     const gap = n > 1 ? span / (n - 1) : .5, sp = thClamp(gap * 1.5, .24, .85), dense = gap < .2;
-    const kinds = dense ? ['circle', 'line', 'arc', 'zig', 'stack'] : n < 3 ? ['jump', 'grid'] : ['grid', 'grid', 'circle', 'line', 'arc', 'zig', 'jump', 'tri'];
-    const kind = kinds[Math.floor(r() * kinds.length)], a0 = r() * 6.283, dir = r() < .5 ? -1 : 1, R = .45 + r() * .45, m = 3 + (r() < .4 ? 1 : 0), pts = [];
+    const kinds = dense ? ['circle', 'line', 'arc', 'zig', 'spiral', 'wave', 'wave'] : n < 3 ? ['jump', 'grid'] : ['grid', 'circle', 'line', 'arc', 'zig', 'jump', 'tri', 'spiral', 'wave'];
+    const kind = kinds[Math.floor(r() * kinds.length)], a0 = r() * 6.283, dir = r() < .5 ? -1 : 1, R = .7 + r() * .45, m = 3 + (r() < .4 ? 1 : 0), pts = [];
     const A = [Math.cos(a0) * .85, Math.sin(a0) * .85], Bp = [-A[0] * (.8 + r() * .4), -A[1] * (.8 + r() * .4)], C = [-Math.sin(a0) * .9, Math.cos(a0) * .9], triple = r() < .3;
-    const gp = []; if (kind === 'grid') { let c = [Math.floor(r() * 3) - 1, Math.floor(r() * 3) - 1]; const far = gap > .3 ? 2 : 1;
+    const gp = []; if (kind === 'grid') { let c = [Math.floor(r() * 3) - 1, Math.floor(r() * 3) - 1]; const far = gap > .2 ? 2 : 1;
       for (let k = 0; k < n; k++) { gp.push([c[0] * .9, c[1] * .9]); let nc; do nc = [thClamp(c[0] + Math.round((r() * 2 - 1) * far), -1, 1), thClamp(c[1] + Math.round((r() * 2 - 1) * far), -1, 1)]; while (nc[0] === c[0] && nc[1] === c[1]); c = nc; } }
     for (let k = 0; k < n; k++) {
       if (kind === 'grid') pts.push(gp[k]);
-      else if (kind === 'stack') { const s = 2 * tri((k >> 1) * sp / 2) - 1; pts.push([Math.cos(a0) * s, Math.sin(a0) * s]); }
+      else if (kind === 'spiral') { const th = a0 + dir * k * .9, rr = .25 + .95 * (n > 1 ? k / (n - 1) : 0); pts.push([Math.cos(th) * rr, Math.sin(th) * rr]); }
+      else if (kind === 'wave') { const s = 2 * tri(k * sp / 3) - 1, w = Math.sin(k * 1.1 + a0) * .8; pts.push([Math.cos(a0) * s * 1.2 - Math.sin(a0) * w, Math.sin(a0) * s * 1.2 + Math.cos(a0) * w]); }
       else if (kind === 'circle') { const th = a0 + dir * k * sp / R; pts.push([Math.cos(th) * R, Math.sin(th) * R]); }
       else if (kind === 'arc') { const th = a0 + dir * Math.PI * (n > 1 ? k / (n - 1) : 0) * thClamp(sp * (n - 1) / 2.8, .4, 1); pts.push([Math.cos(th) * .9, Math.sin(th) * .9]); }
       else if (kind === 'line' || kind === 'zig') { const s = 2 * tri(k * sp / 2) - 1, o = kind === 'zig' ? (k & 1 ? .4 : -.4) : 0; pts.push([Math.cos(a0) * s - Math.sin(a0) * o, Math.sin(a0) * s + Math.cos(a0) * o]); }
@@ -742,7 +743,7 @@ function thLayout(notes, seed) {  // positions libres, par phrases (deux notes e
       else pts.push(triple && k % 3 === 2 ? C : k & 1 ? Bp : A);
     }
     for (let k = 1; k < n; k++) {  // jamais plus loin que ce que la souris peut parcourir entre deux notes
-      const dx = pts[k][0] - pts[k - 1][0], dy = pts[k][1] - pts[k - 1][1], d = Math.hypot(dx, dy), mx = .3 + (p[k][0].t - p[k - 1][0].t) * 5.5;
+      const dx = pts[k][0] - pts[k - 1][0], dy = pts[k][1] - pts[k - 1][1], d = Math.hypot(dx, dy), mx = .45 + (p[k][0].t - p[k - 1][0].t) * 7;
       if (d > mx) pts[k] = [pts[k - 1][0] + dx / d * mx, pts[k - 1][1] + dy / d * mx];
     }
     let x0 = 9, x1 = -9, y0 = 9, y1 = -9; for (const q of pts) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
@@ -856,8 +857,6 @@ function rhDraw() {
   const done = rh.counts.PARFAIT + rh.counts.BIEN + rh.counts.OK + rh.counts['RATÉ'], acc = done ? rh.counts.PARFAIT / done : 1;
   pxFont(g, (acc * 100).toFixed(1) + '%', W / 2, 11, '#7fa9cc', 6, 'center');
   px(g, '#0b3a52', 0, 16, W, 2); px(g, '#3fe0ff', 0, 16, thClamp(now / rh.c.len, 0, 1) * W, 2);
-  if (rh.combo >= 5) pxFont(g, rh.combo + 'x', CX, 200, '#ffffff', 10 + Math.min(4, rh.combo / 40) + pulse * 2, 'center');
-  if (rh.judge) pxFont(g, rh.judge.text, CX, 36 - (30 - rh.judge.t) / 6, rh.judge.color, 8, 'center');
   if (rh.mode === 'play' && now < 0) pxFont(g, String(Math.ceil(-now)), CX, 40, '#ffd07a', 16, 'center');
   if (rh.mode === 'ready') gameText(g, W, [[title.toUpperCase(), '#3fe0ff', 8], [(RH_DIFFS[rh.diff] || 'Perso') + ' · ' + rh.stars + '★ · ' + rh.notes.length + ' notes', '#b5f6ff'], ['Espace ou clic : jouer', '#ffd07a'], ['Bouge la souris sur les notes', '#7fa9cc']], 90);
   if (rh.mode === 'load') gameText(g, W, [['CHARGEMENT…', '#ffd07a', 10], ['La musique se prépare', '#b5f6ff']], 100);
@@ -918,7 +917,7 @@ $('rhMuBtn').onclick = () => { const t = $('rhMuList')._songs?.find(x => muId(x)
 setInterval(() => { if (rhCtx?.state === 'running' && (!view.classList.contains('on') || rh?.mode !== 'play')) rhCtx.suspend(); }, 200);  // the music stops with the game
 let thCurStyle = 'dot', thRect = null; for (const ev of ['resize', 'scroll', 'fullscreenchange']) addEventListener(ev, () => { thRect = null; }, true);
 const thCv = () => $('rhCanvas');
-const thLock = () => { try { thCv().requestPointerLock?.()?.catch?.(() => {}); } catch {} };  // comme dans Rhythia : la souris est capturée pendant la partie (Échap pour la libérer)
+const thLock = () => { const c = thCv(); try { const p = c.requestPointerLock?.({unadjustedMovement: true}); p?.catch?.(() => { try { c.requestPointerLock()?.catch?.(() => {}); } catch {} }); } catch { try { c.requestPointerLock(); } catch {} } };  // comme dans Rhythia : la souris est capturée pendant la partie (Échap pour la libérer)
 const thAim = e => {
   if (!rh) return; const r = thRect ||= thCv().getBoundingClientRect();
   if (document.pointerLockElement === thCv()) { rh.mx = thClamp(rh.mx + e.movementX / r.width * TH.W * 1.5, 0, TH.W); rh.my = thClamp(rh.my + e.movementY / r.width * TH.W * 1.5, 0, TH.H); }
