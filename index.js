@@ -882,7 +882,6 @@ function rhDraw() {
   const done = rh.counts.PARFAIT + rh.counts.BIEN + rh.counts.OK + rh.counts['RATÉ'], acc = done ? rh.counts.PARFAIT / done : 1;
   pxFont(g, (acc * 100).toFixed(1) + '%', W / 2, 11, '#7fa9cc', 6, 'center');
   px(g, '#0b3a52', 0, 16, W, 2); px(g, '#3fe0ff', 0, 16, thClamp(now / rh.c.len, 0, 1) * W, 2);
-  if (rh.mode === 'play' && now < 0) pxFont(g, String(Math.ceil(-now)), CX, 40, '#ffd07a', 16, 'center');
   if (rh.mode === 'ready') gameText(g, W, [[title.toUpperCase(), '#3fe0ff', 8], [(RH_DIFFS[rh.diff] || 'Perso') + ' · ' + rh.stars + '★ · ' + rh.notes.length + ' notes', '#b5f6ff'], ['Espace ou clic : jouer', '#ffd07a'], ['Bouge la souris sur les notes', '#7fa9cc']], 90);
   if (rh.mode === 'load') gameText(g, W, [['CHARGEMENT…', '#ffd07a', 10], ['La musique se prépare', '#b5f6ff']], 100);
   if (rh.mode === 'pause') gameText(g, W, [['PAUSE', '#ffffff', 12], ['Espace ou clic : reprendre', '#b5f6ff']], 100);
