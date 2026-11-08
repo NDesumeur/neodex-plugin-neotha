@@ -1,7 +1,7 @@
 {
   "id": "neodex.neotha",
   "name": "NeoTha",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "author": "NDesumeur",
   "description": "Jeu de rythme à la souris : les notes arrivent du fond d'un tunnel vers une grille de 3 × 3, place ton curseur dessus au moment où elles se posent. Les 200 morceaux de Rythme en 4 difficultés, ou des niveaux créés depuis un fichier audio ou ta bibliothèque NeoMusic (tempo détecté). Combo jusqu'au double des points, note de S à D, décalage audio et curseur réglables.",
   "icon": "icon.png",
