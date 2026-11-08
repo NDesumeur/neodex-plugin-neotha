@@ -32,6 +32,7 @@ Dans **Mes musiques**, crée un niveau :
 ## Réglages
 
 - **Volume** de la musique.
+- **Son des clics** : le son joué à chaque note touchée, au choix parmi 10 (Doux, Clap, Bois, Grosse caisse, Cristal, Pop, Charleston, Caisse claire, Pluck, Tok) ou aucun. Perdre un combo de 10 ou plus joue un son « combo cassé ».
 - **Décalage audio** : Auto, +40, +80 ou +120 ms, si le son arrive en retard (casque Bluetooth par exemple).
 - **Curseur** : point, cercle ou carré.
 

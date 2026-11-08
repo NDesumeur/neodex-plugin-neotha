@@ -32,6 +32,7 @@ In **My music**, create a level:
 ## Settings
 
 - Music **volume**.
+- **Hit sound**: the sound played on each note you hit, one of 10 (Soft, Clap, Wood, Kick, Crystal, Pop, Hi-hat, Snare, Pluck, Tock) or none. Losing a combo of 10 or more plays a « combo break » sound.
 - **Audio offset**: Auto, +40, +80 or +120 ms, if the sound arrives late (Bluetooth headphones, for example).
 - **Cursor**: dot, circle or square.
 
