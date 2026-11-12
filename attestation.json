@@ -1,9 +1,9 @@
 {
   "pluginId": "neodex.neotha",
   "repo": "NDesumeur/neodex-plugin-neotha",
-  "version": "1.4.8",
-  "sha256": "6aea68635c38891620968771f5f025ed90829ddcca8544342184089c6b2636dc",
-  "approvedAt": "2026-11-08T19:05:41.577Z",
+  "version": "1.4.9",
+  "sha256": "c663ac0e2ff5e6be5d4ed4cecdda39d0d12abae754289310aaae8a768af9095b",
+  "approvedAt": "2026-11-12T12:24:45.025Z",
   "neobase": ">=4.1.0",
-  "signature": "ZO6zTbENwaQEEcmDS9ZJgeyNd6wLDCAMTXkS+KnFquLewgUqNfmBHwJuf1LpoMIKgchSJewU39zXsgzpN8yWAA=="
+  "signature": "pc8W5+31wT8i6DrzieErIAbcDyjbbWoIzcsGaISWsKIh6tswWH42HmLCZP5oHkQIliPXkBa61y8pZf3DrOzIAA=="
 }
