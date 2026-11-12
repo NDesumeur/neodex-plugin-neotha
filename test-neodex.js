@@ -8,7 +8,8 @@ module.exports = async ({ pj, js, sleep }) => {
   const shot = () => pj(`(() => { const c = document.getElementById('rhCanvas'), g = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 0; for (let i = 0; i < g.length; i += 397) h = (h * 31 + g[i]) | 0; return h; })()`);
   // la page NeoDex reprend le clavier, puis espace : la partie doit démarrer quand même
   await js(`document.activeElement?.blur(), document.body.focus(), document.body.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true })), 0`);
-  await sleep(3000); const a = await shot(); await sleep(600); const b = await shot();
+  await sleep(3000); const a = await shot(); let b = a;
+  for (let i = 0; i < 24 && a === b; i++) { await sleep(500); b = await shot(); }  // l'intro d'un morceau lent peut durer 10 s sans note : l'image bouge à la première note
   if (a === b) throw new Error('espace tapé dans NeoDex n\'a pas lancé la partie');
   const muts = await pj(`new Promise(ok => { let n = 0; const o = new MutationObserver(m => { n += m.length; }); o.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true }); setTimeout(() => { o.disconnect(); ok(n); }, 2000); })`);
   if (muts > 20) throw new Error('la page change ' + muts + ' fois en 2 s pendant le jeu (le rendu en pixels repasse sur toute la page)');

@@ -1,6 +1,6 @@
 # NeoTha
 
-A mouse rhythm game: notes come from the far end of a tunnel towards a 3 × 3 grid, and your cursor must be on each note the moment it lands. Play the 200 tracks from the Rythme plugin, or create levels from any music.
+A mouse rhythm game: notes come from the far end of a tunnel towards a 3 × 3 grid, and your cursor must be on each note the moment it lands. Play the 1200 tracks from the Rythme plugin, or create levels from any music.
 
 *Version française : [README.md](README.md)*
 
@@ -20,7 +20,7 @@ At the end, the final grade depends on the share of notes hit: **S** from 95 %, 
 
 ## Songs
 
-The **Songs** tab offers the 200 tracks from the Rythme plugin, each with its 4 difficulties. Notes are placed on the music's beats.
+The **Songs** tab offers the 1200 tracks from the Rythme plugin, each with its 4 difficulties. Notes are placed on the music's beats.
 
 ## My music
 

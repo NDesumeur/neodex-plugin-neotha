@@ -1,6 +1,6 @@
 # NeoTha
 
-Un jeu de rythme à la souris : les notes arrivent depuis le fond d'un tunnel vers une grille de 3 × 3, et il faut que ton curseur soit sur chaque note au moment où elle se pose. Joue les 200 morceaux du plugin Rythme, ou crée des niveaux à partir de n'importe quelle musique.
+Un jeu de rythme à la souris : les notes arrivent depuis le fond d'un tunnel vers une grille de 3 × 3, et il faut que ton curseur soit sur chaque note au moment où elle se pose. Joue les 1200 morceaux du plugin Rythme, ou crée des niveaux à partir de n'importe quelle musique.
 
 *English version: [README.en.md](README.en.md)*
 
@@ -20,7 +20,7 @@ Chaque note réussie rapporte 300 points, plus 1 % par note de combo, jusqu'au d
 
 ## Chansons
 
-L'onglet **Chansons** reprend les 200 morceaux du plugin Rythme, chacun avec ses 4 difficultés. Les notes y sont placées sur les temps de la musique.
+L'onglet **Chansons** reprend les 1200 morceaux du plugin Rythme, chacun avec ses 4 difficultés. Les notes y sont placées sur les temps de la musique.
 
 ## Mes musiques
 
