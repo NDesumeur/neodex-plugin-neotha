@@ -16,5 +16,11 @@ module.exports = async ({ pj, js, sleep }) => {
   const r = await pj(`new Promise(ok => { const d = []; let l = performance.now(), n = 0; const f = t => { d.push(t - l); l = t; if (++n < 240) requestAnimationFrame(f); else ok(d); }; requestAnimationFrame(f); })`);
   const s = [...r].sort((x, y) => x - y), avg = r.reduce((x, y) => x + y, 0) / r.length, p95 = s[Math.floor(s.length * .95)], slow = r.filter(x => x > 25).length;
   if (1000 / avg < 50 || slow > 12) throw new Error('saccades : ' + Math.round(1000 / avg) + ' i/s, ' + slow + ' images lentes');
-  return 'plein écran ok, souris capturée ' + await pj(`(document.getElementById('rhCanvas').requestPointerLock(), new Promise(ok => setTimeout(() => ok(!!document.pointerLockElement), 600)))`) + ', touche depuis NeoDex ok, ' + Math.round(1000 / avg) + ' i/s en jeu, 95e centile ' + p95.toFixed(1) + ' ms';
+  const pl = await pj(`(document.getElementById('rhCanvas').requestPointerLock(), new Promise(ok => setTimeout(() => ok(!!document.pointerLockElement), 600)))`);
+  // fin du morceau avancée : l'écran de fin doit montrer la courbe de précision (une partie inventée : un passage plus difficile au milieu)
+  await pj(`(() => { const rh = document.getElementById('rhCanvas').__rh(), L = rh.c.len, h = []; for (const n of rh.notes) n.judged = true; for (let i = 0; i < 200; i++) { const t = i / 200 * L; h.push([t, t > L * .4 && t < L * .6 ? +(i % 3 > 0) : +(i % 9 > 0)]); } rh.hist = h; rh.t0 -= L + 3; return 0; })()`); await sleep(1500);
+  const end = await pj(`(() => { const rh = document.getElementById('rhCanvas').__rh(); return { mode: rh.mode, hist: rh.hist.length, shape: String(rh.tun.shape) }; })()`);
+  if (end.mode !== 'over' || !end.hist) throw new Error('écran de fin sans courbe : ' + JSON.stringify(end));
+  await pj(`document.exitPointerLock?.(), 0`);
+  return 'tunnel ' + end.shape + ', courbe de ' + end.hist + ' notes, plein écran ok, souris capturée ' + pl + ', touche depuis NeoDex ok, ' + Math.round(1000 / avg) + ' i/s en jeu, 95e centile ' + p95.toFixed(1) + ' ms';
 };

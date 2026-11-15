@@ -829,7 +829,8 @@ async function rhPrepare(i, diff) {
   const stars = /^S\d+$/.test(diff) ? +diff.slice(1) : Math.max(1, Math.min(10, Math.round(notes.length / Math.max(30, c.len) * 1.25) + (diff === 'expert' ? 1 : 0)));  // la vitesse des notes dépend du niveau : rapide jusqu'à 2★, très rapide au-delà
   try { rh?.src?.stop(); } catch {}
   rh = rhHook(rh || {raf: 0});
-  Object.assign(rh, {g: $('rhCanvas').getContext('2d', {alpha: false}), mode: 'ready', stars, speed: stars > 2 ? 3.2 : 2.6, tick: 0, song: i, diff, c, info, notes, src: null, ev: 0, t0: 0, score: 0, combo: 0, maxCombo: 0, counts: {PARFAIT: 0, BIEN: 0, OK: 0, RATÉ: 0}, judge: null, mx: 192, my: 112, vx: 192, vy: 112, trail: [], cp: 0, cm: 0, fx: [], i0: 0, bg: null, rect: null, sparks: [], done: false});
+  Object.assign(rh, {g: $('rhCanvas').getContext('2d', {alpha: false}), mode: 'ready', stars, speed: stars > 2 ? 3.2 : 2.6, tick: 0, song: i, diff, c, info, notes, src: null, ev: 0, t0: 0, score: 0, combo: 0, maxCombo: 0, counts: {PARFAIT: 0, BIEN: 0, OK: 0, RATÉ: 0}, judge: null, mx: 192, my: 112, vx: 192, vy: 112, trail: [], cp: 0, cm: 0, fx: [], i0: 0, bg: null, rect: null, sparks: [], done: false, hist: [], tun: thTunnel(info.name, info.bpm)});
+  $('rhCanvas').__rh = () => rh;  // pour le test « local »
   games.neothaLast = {song: i, diff}; rhList();
   gameLoop(rh, 'neodex:neotha', rhUpdate, rhDraw);
 }
@@ -913,15 +914,51 @@ function thSfx(kind) {  // le « pop » d'une note touchée (plus aigu quand c'e
   n.connect(fl).connect(g2).connect(rhOut); n.start(t, Math.random() * .5); n.stop(t + .04);
 }
 let thBg = null;
+// chaque morceau a son tunnel : une forme (rectangle, hexagone, cercle, losange, octogone, triangle) et deux couleurs, tirées de son nom et de son tempo (toujours les mêmes pour un morceau)
+const TH_TUN = {shapes: ['rect', 6, 0, 4, 8, 3], cols: [['63,224,255', '40,110,190'], ['255,90,217', '120,60,200'], ['255,190,80', '200,90,40'], ['120,240,150', '30,130,110'], ['255,100,120', '150,40,90'], ['200,200,255', '90,100,220']]};
+function thTunnel(name, bpm) {
+  let h = Math.round(bpm * 10); for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  const r = seeded(h), shape = TH_TUN.shapes[Math.floor(r() * TH_TUN.shapes.length)], cols = TH_TUN.cols[Math.floor(r() * TH_TUN.cols.length)];
+  return {shape, cols, spin: (r() - .5) * .6};
+}
+console.assert(thTunnel('A', 120).shape === thTunnel('A', 120).shape && new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(n => thTunnel(n, 100).cols[0])).size > 2, 'thTunnel');
+function thFrame(g, shape, x, y, rx, ry, rot) {  // un cadre du tunnel ; n côtés (0 = cercle)
+  if (shape === 'rect') return g.strokeRect(x - rx, y - ry, rx * 2, ry * 2);
+  g.beginPath();
+  if (!shape) g.ellipse(x, y, rx, ry, 0, 0, 6.283);
+  else for (let i = 0; i <= shape; i++) { const a = rot + i * 6.283 / shape - 1.5708; g[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * rx, y + Math.sin(a) * ry); }
+  g.stroke();
+}
+// la courbe de précision de l'écran de fin : la part des notes touchées le long du morceau (24 tranches), les notes ratées en rouge dessous
+function thCurveData(hist, len, N = 24) {
+  const b = Array.from({length: N}, () => [0, 0]);
+  for (const [t, s] of hist) { const k = Math.min(N - 1, Math.max(0, Math.floor(t / len * N))); b[k][0] += s; b[k][1]++; }
+  return b.map(([s, n]) => n ? s / n : null);
+}
+console.assert(thCurveData([[0, 1], [1, 1], [9, 0], [9.5, 1]], 10, 2).join() === '1,0.5', 'thCurveData');
+function thCurve(g, W, y) {
+  const N = 24, x0 = 40, w = W - 96, h = 26, len = rh.c.len || 1, acc = thCurveData(rh.hist || [], len, N), Y = a => Math.round(y + 6 + (1 - thClamp((a - .5) / .5, 0, 1)) * h);
+  g.fillStyle = 'rgba(2,9,20,.86)'; g.fillRect(x0 - 8, y - 9, w + 32, h + 22); px(g, '#3fe0ff', x0 - 8, y - 9, w + 32, 1);
+  pxFont(g, 'PRÉCISION LE LONG DU MORCEAU', x0, y, '#7fa9cc', 5);
+  for (const [f, t] of [[1, '100'], [.75, '75']]) { for (let x = x0; x < x0 + w; x += 3) px(g, '#123a5a', x, Y(f), 1, 1); pxFont(g, t, x0 + w + 4, Y(f) + 3, '#4f7ea5', 5); }
+  let prev = null;
+  acc.forEach((a, k) => {
+    if (a == null) { prev = null; return; }
+    const xa = x0 + Math.round(k * w / N), xb = x0 + Math.round((k + 1) * w / N), yy = Y(a), col = a >= .9 ? '#8ee8a0' : a >= .7 ? '#ffd07a' : '#ff4f6d';
+    if (prev != null) px(g, col, xa, Math.min(prev, yy), 1, Math.abs(prev - yy) + 2);
+    px(g, col, xa, yy, xb - xa, 2); prev = yy;
+  });
+  for (const [t, s] of rh.hist || []) if (!s) px(g, '#ff4f6d', x0 + Math.round(Math.min(1, t / len) * (w - 1)), y + h + 8, 1, 3);
+}
 const thPos = n => [TH.CX + n.u * TH.K, TH.CY + n.v * TH.K];
 function rhJudge(n) {  // la note est touchée : réussie, sans nuance
-  n.judged = true; rh.combo++; rh.maxCombo = Math.max(rh.maxCombo, rh.combo); rh.counts.PARFAIT++;
+  rh.hist.push([n.t, 1]); n.judged = true; rh.combo++; rh.maxCombo = Math.max(rh.maxCombo, rh.combo); rh.counts.PARFAIT++;
   rh.score += Math.round(300 * (1 + Math.min(rh.combo, 100) / 100));
   rh.judge = {text: 'RÉUSSI', color: '#8ee8a0', t: 30}; rh.cp = 1;
   const [x, y] = thPos(n); rh.fx.push({x, y, col: n.col, t: 0, hit: true});
   for (let i = 0; i < 6; i++) rh.sparks.push({x, y, vx: (Math.random() - .5) * 2.5, vy: (Math.random() - .5) * 2.5, life: 16, color: n.col});
 }
-function rhMiss(n) { n.judged = true; n.missed = true; rh.combo = 0; rh.cm = 1; rh.counts['RATÉ']++; rh.judge = {text: 'RATÉ', color: '#ff4f6d', t: 30}; thSfx('miss'); const [x, y] = thPos(n); rh.fx.push({x, y, col: '#ff4f6d', t: 0, hit: false}); }
+function rhMiss(n) { rh.hist.push([n.t, 0]); n.judged = true; n.missed = true; rh.combo = 0; rh.cm = 1; rh.counts['RATÉ']++; rh.judge = {text: 'RATÉ', color: '#ff4f6d', t: 30}; thSfx('miss'); const [x, y] = thPos(n); rh.fx.push({x, y, col: '#ff4f6d', t: 0, hit: false}); }
 function rhUpdate() {
   const now = rhNow(), ahead = rhCtx.currentTime + .15;
   while (rh.ev < rh.c.events.length && rh.t0 + rh.c.events[rh.ev].t < ahead) { const e = rh.c.events[rh.ev++], when = rh.t0 + e.t; if (when >= rhCtx.currentTime - .02) rhSound(e, Math.max(when, rhCtx.currentTime)); }
@@ -961,15 +998,16 @@ function rhDraw() {
   g.setTransform(cv.width / W, 0, 0, cv.width / W, 0, 0); g.lineJoin = 'round'; g.imageSmoothingEnabled = false;
   if (!thBg) { thBg = document.createElement('canvas'); thBg.width = g.canvas.width; thBg.height = g.canvas.height; const b = thBg.getContext('2d'), gr = b.createRadialGradient(thBg.width / 2, thBg.height * .52, 20, thBg.width / 2, thBg.height * .52, thBg.width * .68); gr.addColorStop(0, '#0a2244'); gr.addColorStop(.55, '#040f22'); gr.addColorStop(1, '#020007'); b.fillStyle = gr; b.fillRect(0, 0, thBg.width, thBg.height); }
   g.drawImage(thBg, 0, 0, W, H);  // fond préparé une fois
-  if (pulse > 0) { g.globalAlpha = pulse * .07; g.fillStyle = '#3fe0ff'; g.fillRect(VX - 2 * K, VY - 1.2 * K, 4 * K, 2.4 * K); g.globalAlpha = 1; }
+  const tun = rh.tun || thTunnel('', 120);
+  if (pulse > 0) { g.globalAlpha = pulse * .07; g.fillStyle = `rgb(${tun.cols[0]})`; g.fillRect(VX - 2 * K, VY - 1.2 * K, 4 * K, 2.4 * K); g.globalAlpha = 1; }
   // tunnel : des cadres qui viennent vers toi et des traînées d'étoiles, au rythme de la musique
   for (let k = 0; k < 7; k++) {
     const ph = (((k / 7 - t * .3) % 1) + 1) % 1, s = 1 / (1 + ph * DEPTH * 1.6), h = 2 * K * s * 1.8;
-    g.strokeStyle = `rgba(${k % 2 ? '40,110,190' : '63,224,255'},${(1 - ph) * (.1 + pulse * .12)})`; g.lineWidth = .6 + s; g.strokeRect(VX - h * 1.6, VY - h * .9, h * 3.2, h * 1.8);
+    g.strokeStyle = `rgba(${tun.cols[k % 2]},${(1 - ph) * (.1 + pulse * .12)})`; g.lineWidth = .6 + s; thFrame(g, tun.shape, VX, VY, h * 1.6, h * .9, t * tun.spin + ph);
   }
   for (let i = 0; i < 20; i++) {
     const a = i * 2.399, ph = (((i * .173 - t * .5) % 1) + 1) % 1, r0 = ph * ph * 280, r1 = r0 + ph * 22;
-    g.strokeStyle = `rgba(181,246,255,${ph * .45})`; g.lineWidth = .7; g.beginPath(); g.moveTo(VX + Math.cos(a) * r0, VY + Math.sin(a) * r0 * .6); g.lineTo(VX + Math.cos(a) * r1, VY + Math.sin(a) * r1 * .6); g.stroke();
+    g.strokeStyle = `rgba(${tun.cols[0]},${ph * .45})`; g.lineWidth = .7; g.beginPath(); g.moveTo(VX + Math.cos(a) * r0, VY + Math.sin(a) * r0 * .6); g.lineTo(VX + Math.cos(a) * r1, VY + Math.sin(a) * r1 * .6); g.stroke();
   }
   // le champ de jeu : quatre coins et un repère au centre (pas de cases)
   g.strokeStyle = `rgba(181,246,255,${.28 + pulse * .3})`; g.lineWidth = 1; const F = 1.45 * K;
@@ -1006,7 +1044,8 @@ function rhDraw() {
   if (rh.mode === 'ready') gameText(g, W, [[title.toUpperCase(), '#3fe0ff', 8], [(RH_DIFFS[rh.diff] || 'Perso') + ' · ' + rh.stars + '★ · ' + rh.notes.length + ' notes', '#b5f6ff'], ['Espace ou clic : jouer', '#ffd07a'], ['Bouge la souris sur les notes', '#7fa9cc']], 90);
   if (rh.mode === 'load') gameText(g, W, [['CHARGEMENT…', '#ffd07a', 10], ['La musique se prépare', '#b5f6ff']], 100);
   if (rh.mode === 'pause') gameText(g, W, [['PAUSE', '#ffffff', 12], ['Espace ou clic : reprendre', '#b5f6ff']], 100);
-  if (rh.mode === 'over') gameText(g, W, [['NOTE ' + rh.grade, rh.grade === 'S' ? '#ffd07a' : '#3fe0ff', 14], [rh.score + ' points', '#ffffff'], ['Précision ' + (rh.acc * 100).toFixed(1) + ' %', '#b5f6ff'], ['Combo max ' + rh.maxCombo, '#b5f6ff'], [rh.counts.PARFAIT + ' réussies · ' + rh.counts['RATÉ'] + ' ratées', '#7fa9cc'], [rh.record ? 'NOUVEAU RECORD !' : 'Espace : rejouer', '#ffd07a']], 60);
+  if (rh.mode === 'over') gameText(g, W, [['NOTE ' + rh.grade, rh.grade === 'S' ? '#ffd07a' : '#3fe0ff', 14], [rh.score + ' points', '#ffffff'], ['Précision ' + (rh.acc * 100).toFixed(1) + ' %', '#b5f6ff'], ['Combo max ' + rh.maxCombo, '#b5f6ff'], [rh.counts.PARFAIT + ' réussies · ' + rh.counts['RATÉ'] + ' ratées', '#7fa9cc'], [rh.record ? 'NOUVEAU RECORD !' : 'Espace : rejouer', '#ffd07a']], 44);
+  if (rh.mode === 'over') thCurve(g, W, 150);
 }
 
 function rhDiffRow(key, sel, play, imp) {

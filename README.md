@@ -45,3 +45,8 @@ Tes scores, précisions et notes par niveau, ainsi que tes réglages et ton curs
 Dans NeoDex : **NeoStore → À découvrir → NeoTha → Installer**.
 
 Développer un plugin : voir le [SDK NeoDex](https://github.com/NDesumeur/neodex-sdk).
+
+## Version 1.5.0
+
+- Chaque morceau a son tunnel : rectangle, hexagone, cercle, losange, octogone ou triangle, et ses deux couleurs, toujours les mêmes pour un morceau.
+- Écran de fin : la courbe de précision le long du morceau, avec les notes ratées marquées en rouge.

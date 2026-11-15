@@ -45,3 +45,8 @@ Your scores, accuracy and grades per level, along with your settings and cursor,
 In NeoDex: **NeoStore → Discover → NeoTha → Install**.
 
 Building a plugin: see the [NeoDex SDK](https://github.com/NDesumeur/neodex-sdk).
+
+## Version 1.5.0
+
+- Each song has its own tunnel: rectangle, hexagon, circle, diamond, octagon or triangle, with its two colours, always the same for a given song.
+- End screen: the accuracy curve across the song, with missed notes marked in red.
