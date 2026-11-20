@@ -540,7 +540,7 @@ function rhChart(c, diff) {  // the notes to hit, from the melody (plus the snar
     let lane = ((n.d % 4) + 4) % 4;
     if (lane === last && n.t - lastT < c.step * 2.5) lane = (lane + 1) % 4;
     const len = n.len >= hold ? n.len * c.step * .85 : 0;
-    notes.push({t: n.t, lane, len});
+    notes.push({t: n.t, lane, len, acc: n.downbeat ? (n.kind === 'B' ? 1 : .75) : n.step % 4 === 0 ? .45 : .25});  // acc : l'accent, pour le placement (Orbe, NeoTha)
     if (diff !== 'facile' && n.downbeat && (diff === 'expert' ? n.kind !== 'pont' : n.kind === 'B' && (diff === 'difficile' || n.step % 32 === 0))) notes.push({t: n.t, lane: (lane + 2) % 4, len: 0});
     last = lane; lastT = n.t;
   }
@@ -615,36 +615,78 @@ async function rhAnalyse(buf) {
 }
 const rhTier = d => { const n = /^S\d+$/.test(d) ? +d.slice(1) : 0; return n ? (n <= 2 ? 'facile' : n <= 4 ? 'normal' : n <= 7 ? 'difficile' : 'expert') : d; };
 function rhChartImport(a, diff) {  // diff : facile…expert, ou « S5 » = niveau à 5 étoiles
-  const S = /^S\d+$/.test(diff) ? +diff.slice(1) : 0, D = rhTier(diff);
-  const sub = S ? (S <= 2 ? 1 : S <= 5 ? 2 : 4) : {facile: 1, normal: 2, difficile: 4, expert: 4}[diff], nps = S ? [1, 1.5, 2.1, 2.8, 3.5, 4.3, 5.1, 6, 7, 8][S - 1] : {facile: 1.1, normal: 2, difficile: 3.1, expert: 4.4}[diff], gap = S ? Math.max(.09, Math.min(.42, .5 - S * .04)) : {facile: .42, normal: .24, difficile: .14, expert: .1}[diff];
-  const slot = a.beat / sub, cands = new Map();
-  for (const p of a.peaks) {  // each onset snaps to the nearest slot of the grid, if it is close enough
-    const j = Math.round((p.t - a.beat0) / slot), t = a.beat0 + j * slot;
-    if (Math.abs(p.t - t) > slot * .4 || t < 1 || t > a.len - .6) continue;
-    const s = p.s * (j % sub === 0 ? 1.3 : 1), o = cands.get(j);
+  // comme un mapper : 1. chaque attaque entendue se cale sur la grille (doubles-croches, ou triolets s'ils collent mieux) ; 2. sa force compte
+  // plus sur le temps que entre deux ; 3. la densité suit l'énergie du morceau (refrains chargés, couplets plus légers, pauses dans les passages
+  // calmes) ; 4. les rafales de doubles-croches sont réservées aux niveaux durs et bornées ; 5. un même rythme de mesure reprend le même motif
+  // de pistes (en miroir une fois sur deux) ; 6. les accents forts deviennent des accords dans les niveaux durs.
+  const S = /^S\d+$/.test(diff) ? +diff.slice(1) : 0, D = rhTier(diff), lv = S || {facile: 2, normal: 4, difficile: 6.5, expert: 8.5}[diff];
+  const nps = S ? [1, 1.5, 2.1, 2.8, 3.5, 4.3, 5.1, 6, 7, 8][S - 1] : {facile: 1.1, normal: 2, difficile: 3.1, expert: 4.4}[diff];
+  const gap = Math.max(.09, Math.min(.6, 1.05 / nps - .05)), U = a.beat / 12, K = t => Math.round((t - a.beat0) / U);  // U : 1/12 de temps (doubles-croches et triolets)
+  const step = lv <= 2.5 ? 12 : lv <= 5 ? 6 : 3, trip = lv >= 6, burst = lv < 5 ? 1 : lv < 6 ? 2 : lv < 7 ? 3 : lv < 8.5 ? 5 : lv < 9.5 ? 9 : 17;
+  // l'énergie, lissée sur un temps et ramenée entre 0 et 1 (0 = le plus calme, 1 = le refrain)
+  const W = Math.max(1, Math.round(a.fps * a.beat)), en = new Float32Array(a.rms.length); let s0 = 0;
+  for (let i = 0; i < a.rms.length; i++) { s0 += a.rms[i]; if (i >= W) s0 -= a.rms[i - W]; en[Math.max(0, i - (W >> 1))] = s0 / Math.min(i + 1, W); }
+  const srt = Float32Array.from(en).sort(), lo = srt[Math.floor(srt.length * .1)] || 0, hi = srt[Math.floor(srt.length * .95)] || 1;
+  const E = t => { const v = en[Math.max(0, Math.min(en.length - 1, Math.round(t * a.fps)))]; return Math.max(0, Math.min(1, (v - lo) / (hi - lo || 1))); };
+  // 1-2. les candidats sur la grille permise à ce niveau
+  const cands = new Map();
+  for (const p of a.peaks) {
+    const fb = (p.t - a.beat0) / a.beat, b = Math.floor(fb), ph = fb - b, q4 = Math.round(ph * 4) / 4, q3 = Math.round(ph * 3) / 3;
+    let j = b * 12 + Math.round((trip && Math.abs(ph - q3) < Math.abs(ph - q4) * .6 && Math.abs(ph - q3) < .06 ? q3 : q4) * 12);
+    if (j % step && !(trip && j % 4 === 0)) j = Math.round(j / step) * step;  // pas permis à ce niveau : sur la case permise la plus proche
+    const t = a.beat0 + j * U; if (Math.abs(p.t - t) > a.beat * .2 || t < 1 || t > a.len - .6) continue;
+    const m = j % 12 === 0 ? 1.35 : j % 6 === 0 ? 1.1 : j % 3 === 0 ? .9 : .85, s = p.s * m * (.6 + .8 * E(t)), o = cands.get(j);
     if (!o || s > o.s) cands.set(j, {j, t, s, band: p.band, f: p.f});
   }
-  const sorted = [...cands.values()].sort((x, y) => y.s - x.s), want = Math.min(sorted.length, Math.round(nps * a.len)), picked = [];
-  const taken = new Set(), cell = t => Math.floor(t / gap);
-  for (const c of sorted) {
-    if (picked.length >= want) break;
-    const z = cell(c.t); let ok = true;
-    for (const q of [z - 1, z, z + 1]) for (const o of taken.has(q) ? picked.filter(p => cell(p.t) === q) : []) if (Math.abs(o.t - c.t) < gap) ok = false;
-    if (ok) { picked.push(c); taken.add(z); }
-  }
-  picked.sort((x, y) => x.t - y.t);
-  const strong = [...picked].sort((x, y) => y.s - x.s)[Math.floor(picked.length * .12)]?.s ?? Infinity, notes = [];
-  let last = -1, lastT = -9;
-  picked.forEach((c, i) => {
-    let lane = c.band;  // low sounds on the left, high ones on the right
-    if (lane === last && c.t - lastT < .3) lane = (lane + (i % 2 ? 1 : 3)) % 4;
-    const next = picked[i + 1]?.t ?? a.len, room = next - c.t, f2 = Math.round(c.f + a.fps * a.beat), held = a.rms[f2] >= a.rms[c.f] * .4;
-    const need = D === 'facile' ? 1.4 : 1.1, len = (D !== 'expert' || room >= a.beat * 2) && room >= a.beat * need && (held || room >= a.beat * 1.8) ? Math.min(room - a.beat * .3, a.beat * 3) * .9 : 0;
-    notes.push({t: c.t, lane, len});
-    if (D === 'expert' && c.s >= strong) notes.push({t: c.t, lane: (lane + 2) % 4, len: 0});
-    last = lane; lastT = c.t;
+  // 3. le nombre de notes par tranche de 2 mesures suit l'énergie (une tranche très calme : presque une pause)
+  const span = a.beat * 8, nW = Math.ceil(a.len / span), wt = Array.from({length: nW}, (_, i) => { const t = (i + .5) * span, raw = en[Math.min(en.length - 1, Math.round(t * a.fps))]; return raw < hi * .12 ? .15 : .4 + 1.2 * E(t); });
+  const k0 = nps * a.len / wt.reduce((x, y) => x + y, 0), byW = Array.from({length: nW}, () => []);
+  for (const c of cands.values()) byW[Math.min(nW - 1, Math.floor(c.t / span))].push(c);
+  let picked = [];
+  byW.forEach((list, i) => {
+    const want = Math.round(k0 * wt[i]), mine = [];
+    for (const c of list.sort((x, y) => y.s - x.s)) { if (mine.length >= want) break; if (mine.every(o => Math.abs(o.t - c.t) >= (lv >= 6 ? U * 2.9 : gap - 1e-6))) mine.push(c); }  // les niveaux durs : jusqu'à la double-croche, les rafales bornées plus bas
+    picked.push(...mine);
   });
+  picked.sort((x, y) => x.t - y.t);
+  // 4. une rafale (notes à moins d'un quart de temps) plus longue que permis : la plus faible saute, jusqu'à ce que ça passe
+  for (let again = true; again;) { again = false; let r0 = 0;
+    for (let i = 1; i <= picked.length; i++) {
+      if (i < picked.length && picked[i].j - picked[i - 1].j <= 3) continue;
+      if (i - r0 > burst) { let w = r0 + 1; for (let k = r0 + 1; k < i - 1; k++) if (picked[k].s < picked[w].s) w = k; picked.splice(w, 1); again = true; break; }
+      r0 = i;
+    } }
+  // 5-6. les pistes : graves à gauche, aigus à droite, le motif d'une mesure repris quand son rythme revient ; accords sur les accents
+  const ord = picked.map(c => c.s).sort((x, y) => y - x), top = ord[Math.floor(ord.length * (D === 'expert' ? .12 : D === 'difficile' ? .05 : 0))] ?? Infinity, ref = ord[Math.floor(ord.length * .05)] || 1;
+  const bars = new Map(), seen = new Map(), notes = [];
+  for (const c of picked) { const b = Math.floor(c.j / 48); if (!bars.has(b)) bars.set(b, []); bars.get(b).push(c); }
+  let last = -1, lastT = -9;
+  for (const [, cs] of bars) {
+    const sig = cs.map(c => c.j % 48).join(','), was = seen.get(sig), lanes = [];
+    cs.forEach((c, i) => {
+      let lane = was ? (was.n % 2 ? 3 - was.lanes[i] : was.lanes[i]) : c.band;
+      if (!was && i && cs[i - 1].j + 3 >= c.j) lane = (lanes[i - 1] + (cs[0].band < 2 ? 1 : 3)) % 4;  // une rafale roule dans un sens
+      if (lane === last && c.t - lastT < (D === 'expert' ? .16 : .3)) lane = (lane + (i % 2 ? 1 : 3)) % 4;  // pas deux fois la même touche trop vite
+      lanes.push(lane);
+      const next = picked[picked.indexOf(c) + 1]?.t ?? a.len, room = next - c.t, f2 = Math.round(c.f + a.fps * a.beat), held = a.rms[f2] >= a.rms[c.f] * .4;
+      const need = D === 'facile' ? 1.4 : 1.1, len = (D !== 'expert' || room >= a.beat * 2) && room >= a.beat * need && (held || room >= a.beat * 1.8) ? Math.min(room - a.beat * .3, a.beat * 3) * .9 : 0;
+      const acc = Math.min(1, c.s / ref);
+      notes.push({t: c.t, lane, len, acc});
+      if ((D === 'expert' || D === 'difficile') && c.s >= top && c.j % 12 === 0 && room > .12) notes.push({t: c.t, lane: (lane + 2) % 4, len: 0, acc});
+      last = lane; lastT = c.t;
+    });
+    seen.set(sig, {lanes: was ? was.lanes : lanes, n: was ? was.n + 1 : 0});
+  }
   return notes.map(n => ({...n, judged: false, held: false}));
+}
+{ // contrôle : une musique faite de doubles-croches régulières, plus forte sur les temps et dans sa seconde moitié
+  const fps = 86, len = 60, beat = .5, peaks = [], rms = new Float32Array(len * fps);
+  for (let i = 0; i < rms.length; i++) rms[i] = i / fps > 30 ? .5 : .1;
+  for (let t = 1; t < len - 1; t += beat / 4) peaks.push({t, s: Math.round((t - 1) / beat * 4) % 4 ? 1 : 2, band: Math.round(t * 4) % 4, f: Math.round(t * fps)});
+  const A = {bpm: 120, beat, beat0: 0, peaks, rms, fps, len}, ez = rhChartImport(A, 'facile'), ex = rhChartImport(A, 'expert');
+  const runs = ns => { ns = ns.filter((n, i) => !i || n.t !== ns[i - 1].t); let m = 1, r = 1; for (let i = 1; i < ns.length; i++) { r = ns[i].t - ns[i - 1].t < beat / 4 + .01 ? r + 1 : 1; m = Math.max(m, r); } return m; };
+  console.assert(ez.every(n => Math.abs(((n.t / beat) % 1 + 1) % 1) < .01 || Math.abs(((n.t / beat) % 1) - 1) < .01) && ex.length > ez.length * 2.5 && runs(ex) <= 9 && runs(ez) === 1 && ez.length === new Set(ez.map(n => n.t)).size
+    && ex.filter(n => n.t > 30).length > ex.filter(n => n.t < 30).length * 1.4, 'rhChartImport');
 }
 const rhImports = () => gstore('neothaImports', []);
 const rhAnalysed = new Map();  // id -> {a, buffer}, for this session (recomputed from the sound: same notes on every PC)
@@ -866,43 +908,55 @@ function thStreams(notes, c, diff) {  // une note tenue devient une série de no
   for (const n of notes) { out.push(n); if (iv && n.len > iv * 2.5) for (let t = n.t + iv; t < n.t + n.len - iv * .3; t += iv) out.push({...n, t, len: 0, judged: false, held: false, stream: true}); }
   return out.sort((a, b) => a.t - b.t);
 }
-function thLayout(notes, seed) {  // positions libres, par phrases (deux notes en même temps : côte à côte) : cercle, arc, ligne qui rebondit, zigzag, triangle ou aller-retour ; une même phrase de la musique donne toujours le même motif
-  const B = TH.LIM, slots = [], phrases = [], out = [], tri = x => { const m = ((x % 2) + 2) % 2; return m > 1 ? 2 - m : m; };
+function thLayout(notes, seed) {  // à la Rhythia : les notes tombent sur les 9 cases d'une grille 3×3, par phrases (notes à moins d'une demi-seconde)
+  // rapide : glissade d'une case à la voisine (ligne qui rebondit, tour de la grille, zigzag, parfois une note doublée sur place) ;
+  // moyen : tour en sautant une case, triangles, carrés ; lent ou accentué : sauts d'un bord à l'autre. Une phrase au même rythme qu'une
+  // précédente reprend la même forme, en miroir une fois sur deux, comme un mapper. Jamais plus loin que ce que la souris peut parcourir.
+  const G = .95, slots = [], phrases = [], out = [], RING = [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]];
+  const ringAt = c => { let b = 0, bd = 9; RING.forEach((q, i) => { const d = Math.hypot(q[0] - c[0], q[1] - c[1]); if (d < bd) { bd = d; b = i; } }); return b; };
   for (const n of notes) { const l = slots.at(-1); if (l && n.t - l[0].t < .04) l.push(n); else slots.push([n]); }
   let cur = null; for (const s of slots) { if (cur && s[0].t - cur.at(-1)[0].t <= .5) cur.push(s); else phrases.push(cur = [s]); }
-  let ex = 0, ey = 0, lastT = -9, idx = 0;
+  const shapes = new Map(); let at = [0, 0], lastT = -9, idx = 0;
   for (const p of phrases) {
-    const n = p.length, span = p.at(-1)[0].t - p[0][0].t, r = seeded((n * 131 + Math.round(span * 10) * 17 + p[0][0].lane * 7 + (seed | 0)) | 0);
-    const gap = n > 1 ? span / (n - 1) : .5, sp = thClamp(gap * 1.5, .24, .85), dense = gap < .2;
-    const kinds = dense ? ['circle', 'line', 'arc', 'zig', 'spiral', 'wave', 'wave'] : n < 3 ? ['jump', 'grid'] : ['grid', 'circle', 'line', 'arc', 'zig', 'jump', 'tri', 'spiral', 'wave'];
-    const kind = kinds[Math.floor(r() * kinds.length)], a0 = r() * 6.283, dir = r() < .5 ? -1 : 1, R = .7 + r() * .45, m = 3 + (r() < .4 ? 1 : 0), pts = [];
-    const A = [Math.cos(a0) * .85, Math.sin(a0) * .85], Bp = [-A[0] * (.8 + r() * .4), -A[1] * (.8 + r() * .4)], C = [-Math.sin(a0) * .9, Math.cos(a0) * .9], triple = r() < .3;
-    const gp = []; if (kind === 'grid') { let c = [Math.floor(r() * 3) - 1, Math.floor(r() * 3) - 1]; const far = gap > .2 ? 2 : 1;
-      for (let k = 0; k < n; k++) { gp.push([c[0] * .9, c[1] * .9]); let nc; do nc = [thClamp(c[0] + Math.round((r() * 2 - 1) * far), -1, 1), thClamp(c[1] + Math.round((r() * 2 - 1) * far), -1, 1)]; while (nc[0] === c[0] && nc[1] === c[1]); c = nc; } }
-    for (let k = 0; k < n; k++) {
-      if (kind === 'grid') pts.push(gp[k]);
-      else if (kind === 'spiral') { const th = a0 + dir * k * .9, rr = .25 + .95 * (n > 1 ? k / (n - 1) : 0); pts.push([Math.cos(th) * rr, Math.sin(th) * rr]); }
-      else if (kind === 'wave') { const s = 2 * tri(k * sp / 3) - 1, w = Math.sin(k * 1.1 + a0) * .8; pts.push([Math.cos(a0) * s * 1.2 - Math.sin(a0) * w, Math.sin(a0) * s * 1.2 + Math.cos(a0) * w]); }
-      else if (kind === 'circle') { const th = a0 + dir * k * sp / R; pts.push([Math.cos(th) * R, Math.sin(th) * R]); }
-      else if (kind === 'arc') { const th = a0 + dir * Math.PI * (n > 1 ? k / (n - 1) : 0) * thClamp(sp * (n - 1) / 2.8, .4, 1); pts.push([Math.cos(th) * .9, Math.sin(th) * .9]); }
-      else if (kind === 'line' || kind === 'zig') { const s = 2 * tri(k * sp / 2) - 1, o = kind === 'zig' ? (k & 1 ? .4 : -.4) : 0; pts.push([Math.cos(a0) * s - Math.sin(a0) * o, Math.sin(a0) * s + Math.cos(a0) * o]); }
-      else if (kind === 'tri') { const th = a0 + 6.283 * (k % m) / m; pts.push([Math.cos(th) * .9, Math.sin(th) * .9]); }
-      else pts.push(triple && k % 3 === 2 ? C : k & 1 ? Bp : A);
-    }
-    for (let k = 1; k < n; k++) {  // jamais plus loin que ce que la souris peut parcourir entre deux notes
-      const dx = pts[k][0] - pts[k - 1][0], dy = pts[k][1] - pts[k - 1][1], d = Math.hypot(dx, dy), mx = .45 + (p[k][0].t - p[k - 1][0].t) * 7;
-      if (d > mx) pts[k] = [pts[k - 1][0] + dx / d * mx, pts[k - 1][1] + dy / d * mx];
-    }
-    let x0 = 9, x1 = -9, y0 = 9, y1 = -9; for (const q of pts) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
-    const sc = Math.min(1, 2 * B / Math.max(x1 - x0, y1 - y0, 1e-6)), jd = Math.min(1.6, .6 + (p[0][0].t - lastT) * 1.4), ja = r() * 6.283;
-    const fix = kind === 'grid', tx = fix ? 0 : thClamp(ex + Math.cos(ja) * jd - pts[0][0] * sc, -B - x0 * sc, B - x1 * sc), ty = fix ? 0 : thClamp(ey + Math.sin(ja) * jd - pts[0][1] * sc, -B - y0 * sc, B - y1 * sc);
+    const n = p.length, gaps = p.slice(1).map((s, k) => s[0].t - p[k][0].t), mean = n > 1 ? gaps.reduce((x, y) => x + y, 0) / (n - 1) : .6;
+    const sig = n + ':' + gaps.map(g => Math.round(g * 20)).join(','); let h = seed | 0; for (const ch of sig) h = (h * 31 + ch.charCodeAt(0)) | 0;
+    const rep = shapes.get(sig), r = seeded(h), acc = p[0][0].acc || 0;
+    const kinds = mean < .17 ? (n <= 3 && mean < .12 ? ['slide', 'spiral', 'stack'] : ['slide', 'spiral', 'zig', 'slide']) : mean < .3 ? ['spiral2', 'zig', 'tri', 'square', 'slide'] : ['jump', 'tri', 'square', 'jump'];
+    const kind = rep ? rep.kind : kinds[Math.floor(r() * kinds.length)], dir = rep ? rep.dir : r() < .5 ? 1 : -1;
+    // la première case : à l'opposé de la dernière après une pause ou sur un accent (un saut), sinon tout près
+    const far = p[0][0].t - lastT > .6 || acc > .85;
+    let c0 = far ? [-at[0] || (r() < .5 ? 1 : -1), -at[1] || (r() < .5 ? 1 : -1)] : [Math.max(-1, Math.min(1, at[0] + Math.round(r() * 2 - 1))), Math.max(-1, Math.min(1, at[1] + Math.round(r() * 2 - 1)))];
+    if (rep) c0 = rep.cells[0];
+    const cells = [c0];
+    if (kind === 'slide') { let d = rep ? rep.d : [[1, 0], [0, 1], [1, 1], [1, -1]][Math.floor(r() * 4)].map(v => v * dir), c = c0;
+      for (let k = 1; k < n; k++) { let nx = c[0] + d[0], ny = c[1] + d[1]; if (nx < -1 || nx > 1) { d = [-d[0], d[1]]; nx = c[0] + d[0]; } if (ny < -1 || ny > 1) { d = [d[0], -d[1]]; ny = c[1] + d[1]; } cells.push(c = [nx, ny]); } }
+    else if (kind === 'spiral' || kind === 'spiral2') { const i0 = ringAt(c0), st = kind === 'spiral2' ? 2 : 1; cells[0] = RING[i0]; for (let k = 1; k < n; k++) cells.push(RING[((i0 + dir * st * k) % 8 + 8) % 8]); }
+    else if (kind === 'zig') { const ax = Math.abs(c0[0]) === 1 ? 1 : 0; let v = c0[ax] || 1, s = c0[1 - ax] >= 0 ? -1 : 1;  // le long d'un bord vers l'autre, en alternant de part et d'autre
+      for (let k = 1; k < n; k++) { const q = [0, 0]; q[1 - ax] = (k % 4 < 2 ? 1 : -1) * s * (k % 2 ? 1 : 0); q[ax] = v * (k % 2 ? 0 : -1); if (k % 2 === 0) v = -v; cells.push([q[0], q[1]].map(x => Math.max(-1, Math.min(1, x)))); } }
+    else if (kind === 'tri' || kind === 'square') { const m = kind === 'tri' ? 3 : 4, i0 = ringAt(c0), pts = Array.from({length: m}, (_, k) => RING[((i0 + dir * k * (kind === 'tri' ? 3 : 2)) % 8 + 8) % 8]); cells[0] = pts[0]; for (let k = 1; k < n; k++) cells.push(pts[k % m]); }
+    else if (kind === 'stack') for (let k = 1; k < n; k++) cells.push(c0);
+    else { const o = [-c0[0] || 1, -c0[1] || (r() < .5 ? 1 : -1)]; for (let k = 1; k < n; k++) cells.push(k % 2 ? o : c0); }  // jump : d'un côté à l'autre
+    if (rep && rep.n % 2) for (let k = 0; k < n; k++) cells[k] = [-cells[k][0], cells[k][1]];  // une reprise sur deux : en miroir
+    shapes.set(sig, rep ? {...rep, n: rep.n + 1} : {kind, dir, cells: cells.slice(), d: null, n: 1});
+    // la souris ne peut pas tout parcourir : une case trop loin pour le temps donné se rapproche d'un pas
+    let prev = at, pt = lastT;
     p.forEach((slot, k) => {
-      const x = pts[k][0] * sc + tx, y = pts[k][1] * sc + ty;
-      slot.forEach((nt, j) => out.push({...nt, len: 0, col: TH.COL[idx++ & 1], u: j ? x + (x > 0 ? -.55 : .55) * j : x, v: y}));
+      let c = cells[k]; const dt = slot[0].t - pt, mx = (.45 + dt * 7) / G;
+      if (Math.hypot(c[0] - prev[0], c[1] - prev[1]) > mx) c = [prev[0] + Math.sign(c[0] - prev[0]), prev[1] + Math.sign(c[1] - prev[1])];
+      slot.forEach((nt, j) => { const q = j ? [-c[0] || (c[1] ? 0 : 1), -c[1]] : c;  // un accord : la case opposée
+        out.push({...nt, len: 0, col: TH.COL[idx++ & 1], u: q[0] * G, v: q[1] * G}); });
+      prev = c; pt = slot[0].t;
     });
-    ex = pts[n - 1][0] * sc + tx; ey = pts[n - 1][1] * sc + ty; lastT = p.at(-1)[0].t;
+    at = prev; lastT = pt;
   }
   return out;
+}
+{ // contrôle : sur la grille, une phrase répétée reprend la même forme (en miroir), jamais deux notes d'un accord sur la même case
+  const ns = []; for (let b = 0; b < 4; b++) for (let k = 0; k < 6; k++) ns.push({t: b * 3 + k * .12, lane: 0, len: 0}); ns.push({t: 20, lane: 0, len: 0}, {t: 20, lane: 2, len: 0});
+  const o = thLayout(ns, 7), cell = n => Math.round(n.u / .95) + ',' + Math.round(n.v / .95);
+  console.assert(o.every(n => [-.95, 0, .95].some(g => Math.abs(n.u - g) < 1e-9) && [-.95, 0, .95].some(g => Math.abs(n.v - g) < 1e-9))
+    && o.slice(0, 6).map(n => Math.round(n.u / .95) + ',' + Math.round(n.v / .95)).join() === o.slice(12, 18).map(cell).join()
+    && o.slice(6, 12).map(n => -Math.round(n.u / .95) + ',' + Math.round(n.v / .95)).join() === o.slice(0, 6).map(cell).join() && cell(o.at(-1)) !== cell(o.at(-2)), 'thLayout');
 }
 function thSfx(kind) {  // le « pop » d'une note touchée (plus aigu quand c'est précis), un son sourd si elle est ratée
   if (!rhCtx || !rhOut) return;
