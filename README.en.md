@@ -29,6 +29,22 @@ In **My music**, create a level:
 - **Import an audio file** (MP3, M4A, OGG, Opus, WAV, FLAC or WebM), or pick a track from your NeoMusic library;
 - **Create level**: NeoTha detects the tempo and strong beats and builds 4 difficulty levels from them.
 
+## Community maps
+
+In **My music**, **IMPORT A MAP (.SSPM)**: a Sound Space Plus or Rhythia map (**.sspm** file, versions 1 and 2, with its music), or a Sound Space text map (**.txt**, picked together with its music). Notes stay exactly where they are, even between two cells. The map and its music are kept on this PC (20 MB at most for the music); **×** removes it.
+
+## Genre settings
+
+- **Approach speed** (Auto, Slow to Extreme): the time between a note appearing and reaching you, separate from the **Distance** (near, normal, far) at which it appears in the tunnel.
+- **Mods**: **FADE IN** (notes only appear halfway), **GHOST** (they vanish just before arriving), **MIRROR** (the grid flipped left to right). Each mod gives 10 % more experience.
+- **Note size**, **Note colour** (alternating, by pattern: one colour per pattern — stream, spiral, zigzag, triangle, square, jump — or rainbow), **Parallax** (the grid and tunnel follow the cursor a little), **Locked cursor** (it stays inside the play field).
+
+## Challenges and progression
+
+- **Challenge**: notes only land on some cells — **corners only**, **the cross**, **the ring** or **the middle row**. Each challenge has its own leaderboard.
+- **Player level**: each hit note gives experience (more on high-star levels, with a challenge or with mods). Your level is shown at the top.
+- The end screen also shows the **miss map**: the share of missed notes on each of the 9 cells, and the cell you miss most.
+
 ## Settings
 
 - Music **volume**.
@@ -50,3 +66,7 @@ Building a plugin: see the [NeoDex SDK](https://github.com/NDesumeur/neodex-sdk)
 
 - Each song has its own tunnel: rectangle, hexagon, circle, diamond, octagon or triangle, with its two colours, always the same for a given song.
 - End screen: the accuracy curve across the song, with missed notes marked in red.
+
+## Speed and replay
+
+The “Speed” option plays the song at 0.75×, 1×, 1.25× or 1.5×: notes arrive in time with the music. Faster gives more XP, and each speed has its own records. At the end of a game, the R key replays it with its music: your cursor follows exactly the same path (no record, no XP).

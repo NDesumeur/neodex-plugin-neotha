@@ -1,15 +1,25 @@
 const HTML = `<div class="appWrap wide">
-  <div class="agHead"><span class="label">NeoTha</span><span class="hint">Souris : touche chaque note quand elle arrive · espace : jouer · P : pause · Échap : libère la souris</span></div>
+  <div class="agHead"><span class="label">NeoTha</span><span class="hint">Souris : touche chaque note quand elle arrive · espace : jouer · P : pause · Échap : libère la souris</span><span class="hint thLvl" id="thLvl"></span></div>
   <div class="rhMain"><div class="thBox"><canvas id="rhCanvas" width="768" height="432"></canvas><button class="btn px rhFs" id="rhFs">PLEIN ÉCRAN</button></div>
     <div class="rhSide"><div class="rhTabs"><button class="tab px on" id="rhTabSongs">CHANSONS</button><button class="tab px" id="rhTabMine">MES MUSIQUES</button></div>
       <div class="sysCard px rhImport" id="rhImport" style="display:none"><div class="row"><button class="btn main px" id="rhFileBtn">IMPORTER UN FICHIER AUDIO</button><input type="file" id="rhFile" accept="audio/*,.mp3,.m4a,.ogg,.opus,.wav,.flac,.webm" hidden></div>
+        <div class="row"><button class="btn main px" id="thMapBtn">IMPORTER UNE MAP (.SSPM)</button><input type="file" id="thMap" accept=".sspm,.txt,audio/*" multiple hidden></div>
         <div class="row"><select class="f gSel" id="rhMuList"></select><button class="btn px" id="rhMuBtn">CRÉER LE NIVEAU</button></div>
         <div class="row"><label>Difficulté du niveau <select class="f gSel" id="rhStars"><option value="1">★</option><option value="2">★★</option><option value="3" selected>★★★</option><option value="4">★★★★</option><option value="5">★★★★★</option><option value="6">★★★★★★</option><option value="7">★★★★★★★</option><option value="8">★★★★★★★★</option><option value="9">★★★★★★★★★</option><option value="10">★★★★★★★★★★</option></select></label></div><span class="hint" id="rhImpMsg">Depuis un fichier ou une musique de NeoMusic : 4 niveaux sont créés à partir de son tempo et de ses temps forts.</span></div>
       <div id="rhSongs"></div>
       <div class="sysCard px rhOpts"><label>Volume <input type="range" id="rhVol" min="0" max="100" value="70"></label><label>Son des clics <select class="f gSel" id="rhClick"><option value="0" selected>Doux</option><option value="1">Clap</option><option value="2">Bois</option><option value="3">Grosse caisse</option><option value="4">Cristal</option><option value="5">Pop</option><option value="6">Charleston</option><option value="7">Caisse claire</option><option value="8">Pluck</option><option value="9">Tok</option><option value="-1">Aucun</option></select></label>
         
         <label>Décalage audio <select class="f gSel" id="rhOffset"><option value="-120">-120 ms</option><option value="-80">-80 ms</option><option value="-40">-40 ms</option><option value="0" selected>Auto</option><option value="40">+40 ms</option><option value="80">+80 ms</option><option value="120">+120 ms</option></select></label>
-        <label>Curseur <select class="f gSel" id="thCur"><option value="dot" selected>Point</option><option value="ring">Cercle</option><option value="square">Carré</option></select></label></div></div></div>
+        <label>Curseur <select class="f gSel" id="thCur"><option value="dot" selected>Point</option><option value="ring">Cercle</option><option value="square">Carré</option></select></label></div>
+      <div class="sysCard px rhOpts" id="thOpts"><label title="Le temps entre l'apparition d'une note et son arrivée">Vitesse d'approche <select class="f gSel" id="thAr"><option value="auto" selected>Auto</option><option value="1.2">Lente</option><option value="0.9">Calme</option><option value="0.7">Rapide</option><option value="0.55">Très rapide</option><option value="0.42">Extrême</option></select></label>
+        <label title="À quelle profondeur du tunnel les notes apparaissent">Distance <select class="f gSel" id="thDist"><option value="3">Près</option><option value="6" selected>Normale</option><option value="10">Loin</option></select></label>
+        <label>Taille des notes <select class="f gSel" id="thSize"><option value="0.8">Petites</option><option value="1" selected>Normales</option><option value="1.2">Grandes</option></select></label>
+        <label title="Alternée : deux couleurs ; Selon la figure : une couleur par motif (série, spirale, zigzag, triangle, carré, saut)">Couleur des notes <select class="f gSel" id="thColor"><option value="alt" selected>Alternée</option><option value="pat">Selon la figure</option><option value="rb">Arc-en-ciel</option></select></label>
+        <label title="La grille et le tunnel bougent un peu avec le curseur">Relief <select class="f gSel" id="thPar"><option value="0">Aucun</option><option value="0.3" selected>Normal</option><option value="0.6">Fort</option></select></label>
+        <label title="Le curseur ne sort pas du champ de jeu">Curseur bloqué <select class="f gSel" id="thLock"><option value="0" selected>Non</option><option value="1">Oui</option></select></label>
+        <label title="La vitesse du morceau : plus vite, plus d'XP (un classement à part)">Vitesse <select class="f gSel" id="thRate"><option value="0.75">0,75×</option><option value="1" selected>1×</option><option value="1.25">1,25×</option><option value="1.5">1,5×</option></select></label>
+        <label title="Les notes ne tombent que sur certaines cases (un classement à part)">Défi <select class="f gSel" id="thChal"><option value="" selected>Aucun</option><option value="coins">Coins seulement</option><option value="croix">La croix</option><option value="tour">Le tour</option><option value="ligne">La ligne du milieu</option></select></label>
+        <div class="row thModRow" id="thModRow"></div></div></div></div>
   <div class="hint">Comme Rhythia : les notes arrivent du fond du tunnel, partout dans le champ, parfois en longues séries. Passe le curseur dessus à l'instant où elles arrivent ; plus tu es au centre, meilleure est la note. La souris est capturée pendant la partie.</div>
 </div>`;
 const CSS = `.thBox{position:relative}
@@ -37,6 +47,9 @@ const CSS = `.thBox{position:relative}
 .rhOpts{flex-direction:row;flex-wrap:wrap;gap:18px;align-items:center}
 .rhOpts label{display:flex;align-items:center;gap:10px;color:var(--lilac)}
 .rhOpts input[type=range]{accent-color:var(--magenta)}
+.thLvl{margin-left:auto;color:#8ee8a0}
+.thModRow{gap:6px;width:100%}
+.thModRow .btn{width:auto;height:30px;font-size:13px;padding:0 10px}
 `;
 /* ---------- l'habillage pixel art, dessiné à la main : police bitmap (accents compris), cadres, boutons, icônes ----------
    Tout est en pixels pleins, agrandis par 2 sans lissage : aucun dégradé, aucune ombre floue. */
@@ -868,19 +881,25 @@ async function rhSelect(i, diff) { const me = rhTok + 1; rhBar(.03); try { retur
 async function rhPrepare(i, diff) {
   let info, c, notes; const tok = ++rhTok;
   if (rh) { try { rh.src?.stop(); } catch {} rh.mode = 'load'; }  // la musique entière doit être prête avant de pouvoir lancer
-  if (typeof i === 'number') { const song = RH_SONGS[i] || RH_SONGS[0]; c = rhCompose(song); notes = rhChart(c, diff); info = {name: song.name, bpm: song.bpm, key: 'rh' + RH_SONGS.indexOf(song) + diff};
+  if (String(i).startsWith('sspm')) {  // une map de la communauté : les notes à leur place, sans rien générer
+    const m = thMaps().find(x => x.id === i); if (!m) return rhSelect(0, 'normal');
+    const C = await thMapLoad(m); notes = thMapNotes(C.notes); diff = 'M';
+    c = {events: [], lead: [], len: Math.max(C.buffer.duration, notes.at(-1).t + 1), step: .125, buffer: C.buffer}; info = {name: m.name, bpm: thMapBpm(notes), key: m.id, map: true};
+  } else if (typeof i === 'number') { const song = RH_SONGS[i] || RH_SONGS[0]; c = rhCompose(song); notes = rhChart(c, diff); info = {name: song.name, bpm: song.bpm, key: 'rh' + RH_SONGS.indexOf(song) + diff};
     const buffer = await rhRenderSong(RH_SONGS.indexOf(song), c); c = {events: [], lead: [], len: c.len, step: c.step, buffer}; }
   else {
     const imp = rhImports().find(x => x.id === i); if (!imp) return rhSelect(0, diff);
     const {a, buffer} = await rhLoadImport(imp);
     c = {events: [], lead: [], len: a.len, step: a.beat / 4, buffer}; notes = rhChartImport(a, diff); info = {name: imp.name, bpm: a.bpm, key: 'rhx' + imp.id + diff};
   }
-  notes = thLayout(thStreams(notes, c, diff), info.name.length * 977 + Math.round(info.bpm * 10));
+  if (!info.map) notes = thLayout(thStreams(notes, c, diff), info.name.length * 977 + Math.round(info.bpm * 10));
+  const chal = thVal('thChal', ''); if (TH_CHAL[chal]) { notes = thChallenge(notes, chal); info = {...info, chal}; } info.key += diff === 'M' ? 'M' : ''; if (info.chal) info.key += '#' + chal;
+  if (thMods.has('miroir')) notes = notes.map(n => ({...n, u: -n.u}));
   if (tok !== rhTok) return;  // un autre niveau a été choisi entre-temps
-  const stars = /^S\d+$/.test(diff) ? +diff.slice(1) : Math.max(1, Math.min(10, Math.round(notes.length / Math.max(30, c.len) * 1.25) + (diff === 'expert' ? 1 : 0)));  // la vitesse des notes dépend du niveau : rapide jusqu'à 2★, très rapide au-delà
+  const stars = info.map ? thMaps().find(x => x.id === i)?.stars || 5 : /^S\d+$/.test(diff) ? +diff.slice(1) : Math.max(1, Math.min(10, Math.round(notes.length / Math.max(30, c.len) * 1.25) + (diff === 'expert' ? 1 : 0)));  // la vitesse des notes dépend du niveau : rapide jusqu'à 2★, très rapide au-delà
   try { rh?.src?.stop(); } catch {}
   rh = rhHook(rh || {raf: 0});
-  Object.assign(rh, {g: $('rhCanvas').getContext('2d', {alpha: false}), mode: 'ready', stars, speed: stars > 2 ? 3.2 : 2.6, tick: 0, song: i, diff, c, info, notes, src: null, ev: 0, t0: 0, score: 0, combo: 0, maxCombo: 0, counts: {PARFAIT: 0, BIEN: 0, OK: 0, RATÉ: 0}, judge: null, mx: 192, my: 112, vx: 192, vy: 112, trail: [], cp: 0, cm: 0, fx: [], i0: 0, bg: null, rect: null, sparks: [], done: false, hist: [], tun: thTunnel(info.name, info.bpm)});
+  Object.assign(rh, {replay: null, rec: [], rate: 1, g: $('rhCanvas').getContext('2d', {alpha: false}), mode: 'ready', stars, speed: stars > 2 ? 3.2 : 2.6, tick: 0, song: i, diff, c, info, notes, src: null, ev: 0, t0: 0, score: 0, combo: 0, maxCombo: 0, counts: {PARFAIT: 0, BIEN: 0, OK: 0, RATÉ: 0}, judge: null, mx: 192, my: 112, vx: 192, vy: 112, trail: [], cp: 0, cm: 0, fx: [], i0: 0, bg: null, rect: null, sparks: [], done: false, hist: [], cells: Array.from({length: 9}, () => [0, 0]), xpGain: 0, tun: thTunnel(info.name, info.bpm)});
   $('rhCanvas').__rh = () => rh;  // pour le test « local »
   games.neothaLast = {song: i, diff}; rhList();
   gameLoop(rh, 'neodex:neotha', rhUpdate, rhDraw);
@@ -897,11 +916,11 @@ function rhTime() {
   rhCk.out = v < rhCk.out && rhCk.out - v < .06 ? rhCk.out : v;  // un paquet arrivé un peu tôt ne fait pas reculer les notes
   return rhCk.out;
 }
-const rhNow = () => rhTime() - rh.t0 - rhLatency();
+const rhNow = () => (rhTime() - rh.t0 - rhLatency()) * (rh.rate || 1);
 function rhBegin() {
   if (!document.fullscreenElement) $('rhCanvas').parentElement.requestFullscreen?.().catch(() => {});  // plein écran : passe aussi par-dessus la barre de NeoDex
-  rhAudio(); rhCtx.resume(); rh.t0 = rhCtx.currentTime + 4; rhCount(); rh.ev = 0; rh.mode = 'play';
-  if (rh.c.buffer) { try { rh.src?.stop(); } catch {} rh.src = rhCtx.createBufferSource(); rh.src.buffer = rh.c.buffer; rh.src.connect(rhOut); rh.src.start(rh.t0); }  // your own music, in time with the notes
+  rhAudio(); rhCtx.resume(); rh.t0 = rhCtx.currentTime + 4; rhCount(); rh.ev = 0; rh.mode = 'play'; rh.rate = rh.replay?.rate || +thVal('thRate', 1); rh.rec = []; rh.rec.rate = rh.rate;
+  if (rh.c.buffer) { try { rh.src?.stop(); } catch {} rh.src = rhCtx.createBufferSource(); rh.src.buffer = rh.c.buffer; rh.src.playbackRate.value = rh.rate; rh.src.connect(rhOut); rh.src.start(rh.t0); }  // your own music, in time with the notes
 }
 function rhPress() {
   if (!rh) return;
@@ -1015,16 +1034,17 @@ function thCurve(g, W, y) {
 }
 const thPos = n => [TH.CX + n.u * TH.K, TH.CY + n.v * TH.K];
 function rhJudge(n) {  // la note est touchée : réussie, sans nuance
-  rh.hist.push([n.t, 1]); n.judged = true; rh.combo++; rh.maxCombo = Math.max(rh.maxCombo, rh.combo); rh.counts.PARFAIT++;
+  rh.hist.push([n.t, 1]); n.judged = true; const ce = rh.cells?.[thCell(n)]; if (ce) { ce[0]++; ce[1]++; } rh.combo++; rh.maxCombo = Math.max(rh.maxCombo, rh.combo); rh.counts.PARFAIT++;
   rh.score += Math.round(300 * (1 + Math.min(rh.combo, 100) / 100));
   rh.judge = {text: 'RÉUSSI', color: '#8ee8a0', t: 30}; rh.cp = 1;
   const [x, y] = thPos(n); rh.fx.push({x, y, col: n.col, t: 0, hit: true});
   for (let i = 0; i < 6; i++) rh.sparks.push({x, y, vx: (Math.random() - .5) * 2.5, vy: (Math.random() - .5) * 2.5, life: 16, color: n.col});
 }
-function rhMiss(n) { rh.hist.push([n.t, 0]); n.judged = true; n.missed = true; rh.combo = 0; rh.cm = 1; rh.counts['RATÉ']++; rh.judge = {text: 'RATÉ', color: '#ff4f6d', t: 30}; thSfx('miss'); const [x, y] = thPos(n); rh.fx.push({x, y, col: '#ff4f6d', t: 0, hit: false}); }
+function rhMiss(n) { rh.hist.push([n.t, 0]); const ce = rh.cells?.[thCell(n)]; if (ce) ce[1]++; n.judged = true; n.missed = true; rh.combo = 0; rh.cm = 1; rh.counts['RATÉ']++; rh.judge = {text: 'RATÉ', color: '#ff4f6d', t: 30}; thSfx('miss'); const [x, y] = thPos(n); rh.fx.push({x, y, col: '#ff4f6d', t: 0, hit: false}); }
 function rhUpdate() {
   const now = rhNow(), ahead = rhCtx.currentTime + .15;
-  while (rh.ev < rh.c.events.length && rh.t0 + rh.c.events[rh.ev].t < ahead) { const e = rh.c.events[rh.ev++], when = rh.t0 + e.t; if (when >= rhCtx.currentTime - .02) rhSound(e, Math.max(when, rhCtx.currentTime)); }
+  while (rh.ev < rh.c.events.length && rh.t0 + rh.c.events[rh.ev].t / (rh.rate || 1) < ahead) { const e = rh.c.events[rh.ev++], when = rh.t0 + e.t / (rh.rate || 1); if (when >= rhCtx.currentTime - .02) rhSound(e, Math.max(when, rhCtx.currentTime)); }
+  if (rh.replay) [rh.mx, rh.my] = thRecAt(rh.replay, now); else if (now > -.5 && rh.rec.length < 4e4) rh.rec.push([Math.round(now * 1000), Math.round(rh.mx * 4), Math.round(rh.my * 4)]);
   while (rh.i0 < rh.notes.length && rh.notes[rh.i0].judged) rh.i0++;
   for (let q = rh.i0; q < rh.notes.length; q++) {
     const n = rh.notes[q]; if (now < n.t - TH.PAD[0]) break; if (n.judged) continue;
@@ -1040,9 +1060,10 @@ function rhUpdate() {
     rh.mode = 'over'; try { rh.src?.stop(); } catch {} try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} try { document.exitPointerLock(); } catch {}
     const n = rh.notes.length, acc = n ? rh.counts.PARFAIT / n : 0;
     rh.acc = acc; rh.grade = acc >= .95 ? 'S' : acc >= .9 ? 'A' : acc >= .8 ? 'B' : acc >= .7 ? 'C' : 'D';
-    const k = rh.info.key, res = gstore('neotha', {}); rh.record = best(k, rh.score);
-    if (rh.record || !res[k]) res[k] = {score: rh.score, acc: Math.round(acc * 1000) / 10, grade: rh.grade, combo: rh.maxCombo};
-    saveGames(); sfx('SAB'.includes(rh.grade) ? 'launch' : 'notify'); rhList();
+    const k = rh.info.key + (rh.rate !== 1 ? '@' + rh.rate : ''), res = gstore('neotha', {}); rh.record = !rh.replay && best(k, rh.score);
+    if (!rh.replay && (rh.record || !res[k])) res[k] = {score: rh.score, acc: Math.round(acc * 1000) / 10, grade: rh.grade, combo: rh.maxCombo};
+    const L0 = thLevel(games.neothaXp || 0).L; rh.xpGain = rh.replay ? 0 : Math.round(rh.counts.PARFAIT * (1 + rh.stars / 5) * (rh.info.chal ? 1.2 : 1) * (1 + .1 * thMods.size) * rh.rate); games.neothaXp = (games.neothaXp || 0) + rh.xpGain; rh.lvlUp = thLevel(games.neothaXp).L > L0;
+    saveGames(); sfx('SAB'.includes(rh.grade) ? 'launch' : 'notify'); rhList(); thLvlShow();
   }
 }
 function thSquare(g, x, y, h, col, alpha, lw) {  // un carré creux lumineux
@@ -1051,10 +1072,10 @@ function thSquare(g, x, y, h, col, alpha, lw) {  // un carré creux lumineux
   g.globalAlpha = alpha * .12; g.fillStyle = col; g.fillRect(x - h, y - h, h * 2, h * 2); g.globalAlpha = 1;
 }
 function rhDraw() {
-  const g = rh.g, {W, H, CX, CY, K, HALF, DEPTH} = TH, now = rhCtx && rh.mode !== 'ready' && rh.mode !== 'load' ? rhNow() : -2, appr = 2.4 / rh.speed;
+  const g = rh.g, {W, H, CX, CY, K, HALF, DEPTH} = TH, now = rhCtx && rh.mode !== 'ready' && rh.mode !== 'load' ? rhNow() : -2, appr = thAppr(), ND = +thVal('thDist', 6), SZ = +thVal('thSize', 1), CM = thVal('thColor', 'alt'), PAR = +thVal('thPar', .3), FD = thMods.has('fondu'), GH = thMods.has('fantome');
   // la caméra suit doucement le curseur, à chaque image (et pas 60 fois par seconde : à 165 Hz, le tunnel tremblerait)
   const pn = performance.now(), dt = Math.min(.1, (pn - (rh.camT || pn)) / 1000), k = rh.mode === 'play' ? 1 - Math.pow(.92, dt * 60) : 0; rh.camT = pn;
-  rh.vx += (TH.CX + (rh.mx - TH.CX) * .3 - rh.vx) * k; rh.vy += (TH.CY + (rh.my - TH.CY) * .3 - rh.vy) * k;
+  rh.vx += (TH.CX + (rh.mx - TH.CX) * PAR - rh.vx) * k; rh.vy += (TH.CY + (rh.my - TH.CY) * PAR - rh.vy) * k;
   const beat = 60 / rh.info.bpm, pulse = now > 0 ? Math.max(0, 1 - (now % beat) / beat * 2) : 0, VX = rh.vx, VY = rh.vy, t = now > 0 ? now : 0;
   const cv = g.canvas, tw = Math.min(1920, Math.round((cv.clientWidth || 768) * Math.min(1.5, devicePixelRatio || 1)));
   if (tw > 200 && Math.abs(cv.width - tw) > 8) { cv.width = tw; cv.height = Math.round(tw * H / W); thBg = null; }  // net à toutes les tailles, plein écran compris
@@ -1080,11 +1101,13 @@ function rhDraw() {
   let i1 = rh.i0; while (i1 < rh.notes.length && rh.notes[i1].t - now < appr) i1++;
   for (let q = i1 - 1; q >= rh.i0; q--) {  // du fond vers l'avant, sans trier ni filtrer toute la liste
     const n = rh.notes[q]; if (n.judged || n.t - now < -.2) continue;
-    const z = Math.max(0, (n.t - now) / appr), s = 1 / (1 + z * DEPTH), [x, y] = thPos(n), px0 = VX + (x - VX) * s, py0 = VY + (y - VY) * s;
-    if (z < .4) { g.globalAlpha = (1 - z / .4) * .35; g.strokeStyle = n.col; g.lineWidth = 1; g.setLineDash([3, 3]); g.strokeRect(x - HALF, y - HALF, HALF * 2, HALF * 2); g.setLineDash([]); g.globalAlpha = 1; }  // où elle va arriver
-    thSquare(g, px0, py0, HALF * s, n.col, Math.min(1, (1 - z) * 3), 1 + 1.4 * s);
-    if (z < .15) thSquare(g, px0, py0, HALF * s * .55, '#ffffff', 1 - z / .15, 1);  // elle s'allume au moment de la toucher
-    if (s > .5) px(g, '#ffffff', px0 - 1, py0 - 1, 2, 2);
+    const z = Math.max(0, (n.t - now) / appr), s = 1 / (1 + z * ND), [x, y] = thPos(n), px0 = VX + (x - VX) * s, py0 = VY + (y - VY) * s;
+    const col = CM === 'pat' ? TH_PAT[n.pat] || n.col : CM === 'rb' ? TH_RB[q % 12] : n.col, fa = (FD ? thClamp((.55 - z) / .15, 0, 1) : 1) * (GH ? thClamp((z - .12) / .2, 0, 1) : 1);  // fondu : à mi-chemin ; fantôme : s'efface avant d'arriver
+    if (fa <= 0) continue;
+    if (z < .4 && !GH) { g.globalAlpha = (1 - z / .4) * .35; g.strokeStyle = col; g.lineWidth = 1; g.setLineDash([3, 3]); g.strokeRect(x - HALF, y - HALF, HALF * 2, HALF * 2); g.setLineDash([]); g.globalAlpha = 1; }  // où elle va arriver
+    thSquare(g, px0, py0, HALF * s * SZ, col, Math.min(1, (1 - z) * 3) * fa, 1 + 1.4 * s);
+    if (z < .15) thSquare(g, px0, py0, HALF * s * SZ * .55, '#ffffff', (1 - z / .15) * fa, 1);  // elle s'allume au moment de la toucher
+    if (s > .5 && fa > .5) px(g, '#ffffff', px0 - 1, py0 - 1, 2, 2);
   }
   for (const f of rh.fx) { const k = f.t / 16, h = HALF * (1 + k * (f.hit ? .9 : .5)); thSquare(g, f.x, f.y, h, f.hit ? '#ffffff' : f.col, 1 - k, 2 - k * 1.5); if (f.hit) thSquare(g, f.x, f.y, h * .6, f.col, (1 - k) * .8, 1); }
   for (const s of rh.sparks) { g.globalAlpha = s.life / 16; px(g, s.color, s.x, s.y, 2, 2); g.globalAlpha = 1; }
@@ -1104,13 +1127,140 @@ function rhDraw() {
   const done = rh.counts.PARFAIT + rh.counts.BIEN + rh.counts.OK + rh.counts['RATÉ'], acc = done ? rh.counts.PARFAIT / done : 1;
   pxFont(g, (acc * 100).toFixed(1) + '%', W / 2, 11, '#7fa9cc', 6, 'center');
   px(g, '#0b3a52', 0, 16, W, 2); px(g, '#3fe0ff', 0, 16, thClamp(now / rh.c.len, 0, 1) * W, 2);
-  if (rh.mode === 'ready') gameText(g, W, [[title.toUpperCase(), '#3fe0ff', 8], [(RH_DIFFS[rh.diff] || 'Perso') + ' · ' + rh.stars + '★ · ' + rh.notes.length + ' notes', '#b5f6ff'], ['Espace ou clic : jouer', '#ffd07a'], ['Bouge la souris sur les notes', '#7fa9cc']], 90);
+  if (rh.mode === 'ready') gameText(g, W, [[title.toUpperCase(), '#3fe0ff', 8], [(rh.info.map ? 'Map' : RH_DIFFS[rh.diff] || 'Perso') + ' · ' + rh.stars + '★ · ' + rh.notes.length + ' notes' + (rh.info.chal ? ' · ' + TH_CHAL_N[rh.info.chal] : '') + (thMods.size ? ' · ' + [...thMods].map(m => TH_MODS.find(x => x[0] === m)[1]).join(' ') : ''), '#b5f6ff'], ['Espace ou clic : jouer', '#ffd07a'], ['Bouge la souris sur les notes', '#7fa9cc']], 90);
   if (rh.mode === 'load') gameText(g, W, [['CHARGEMENT…', '#ffd07a', 10], ['La musique se prépare', '#b5f6ff']], 100);
   if (rh.mode === 'pause') gameText(g, W, [['PAUSE', '#ffffff', 12], ['Espace ou clic : reprendre', '#b5f6ff']], 100);
   if (rh.mode === 'over') gameText(g, W, [['NOTE ' + rh.grade, rh.grade === 'S' ? '#ffd07a' : '#3fe0ff', 14], [rh.score + ' points', '#ffffff'], ['Précision ' + (rh.acc * 100).toFixed(1) + ' %', '#b5f6ff'], ['Combo max ' + rh.maxCombo, '#b5f6ff'], [rh.counts.PARFAIT + ' réussies · ' + rh.counts['RATÉ'] + ' ratées', '#7fa9cc'], [rh.record ? 'NOUVEAU RECORD !' : 'Espace : rejouer', '#ffd07a']], 44);
-  if (rh.mode === 'over') thCurve(g, W, 150);
+  if (rh.mode === 'play' && rh.replay) pxFont(g, 'REVOIR' + (rh.rate !== 1 ? ' · ' + rh.rate + '×' : ''), W - 8, 28, '#ffd07a', 6, 'right');
+  if (rh.mode === 'over' && rh.rec?.length && !rh.replay) pxFont(g, 'R : REVOIR TA PARTIE', W - 8, 120, '#ffd07a', 5, 'right');
+  if (rh.mode === 'over') { thCurve(g, W, 150); thHeat(g, 14, 50); pxFont(g, '+' + rh.xpGain + ' XP' + (rh.lvlUp ? ' · NIVEAU ' + thLevel(games.neothaXp || 0).L + ' !' : ''), 8, 120, rh.lvlUp ? '#ffd07a' : '#8ee8a0', 5); }
 }
 
+/* ---------- 1.7.0 : les réglages du genre (vitesse d'approche, distance, mods, taille, couleurs, relief), les défis de grille,
+   les maps de la communauté (Sound Space / Rhythia : .sspm, ou .txt avec sa musique), la carte des ratés et le niveau du joueur ---------- */
+const TH_PAT = {slide: '#7fe0ee', spiral: '#ff5ad9', spiral2: '#b08cff', zig: '#ffd07a', tri: '#8ee8a0', square: '#ff9f4a', stack: '#ffffff', jump: '#ff6a7a'};
+const TH_RB = Array.from({length: 12}, (_, i) => `hsl(${i * 30},90%,66%)`);
+const TH_CHAL = {coins: [[-1, -1], [1, -1], [-1, 1], [1, 1]], croix: [[0, 0], [0, -1], [1, 0], [0, 1], [-1, 0]], tour: [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]], ligne: [[-1, 0], [0, 0], [1, 0]]};
+const TH_CHAL_N = {coins: 'Coins seulement', croix: 'La croix', tour: 'Le tour', ligne: 'La ligne du milieu'};
+const TH_MODS = [['fondu', 'FONDU', 'Les notes n\'apparaissent qu\'à mi-chemin'], ['fantome', 'FANTÔME', 'Les notes s\'effacent juste avant d\'arriver'], ['miroir', 'MIROIR', 'La grille retournée de gauche à droite']];
+let thMods = new Set();
+const thVal = (id, d) => { const v = $(id)?.value; return v == null || v === '' ? d : v; };
+const thAppr = () => thVal('thAr', 'auto') === 'auto' ? 2.4 / rh.speed : +thVal('thAr', .75);
+const thCell = n => (thClamp(Math.round(n.v / .95), -1, 1) + 1) * 3 + thClamp(Math.round(n.u / .95), -1, 1) + 1;
+function thChallenge(notes, ch) {  // un défi : chaque note va sur la case permise la plus proche (jamais deux fois de suite la même s'il y a le choix)
+  const A = TH_CHAL[ch]; if (!A) return notes; let prev = null;
+  return notes.map(n => { const c = [n.u / .95, n.v / .95]; let b = A[0], bd = 99;
+    for (const a of A) { const d = Math.hypot(a[0] - c[0], a[1] - c[1]) + (a === prev ? 9 : 0); if (d < bd) { bd = d; b = a; } }
+    prev = b; return {...n, u: b[0] * .95, v: b[1] * .95}; });
+}
+{ const o = thChallenge([{u: .95, v: .95}, {u: .9, v: .95}, {u: 0, v: 0}], 'coins');
+  console.assert(o.every(n => Math.abs(n.u) === .95 && Math.abs(n.v) === .95) && (o[0].u !== o[1].u || o[0].v !== o[1].v), 'thChallenge'); }
+const thLevel = xp => { let L = 1, need = 300; xp = Math.max(0, xp | 0); while (xp >= need) { xp -= need; L++; need = Math.round(need * 1.15); } return {L, xp, need}; };
+console.assert(thLevel(0).L === 1 && thLevel(300).L === 2 && thLevel(299).xp === 299, 'thLevel');
+function thLvlShow() { const {L, xp, need} = thLevel(games.neothaXp || 0), e = $('thLvl'); if (e) e.textContent = 'NIVEAU ' + L + ' · ' + xp + ' / ' + need + ' XP'; }
+// la carte des ratés : la part de notes ratées sur chacune des 9 cases
+function thHeat(g, x0, y0) {
+  const C = rh.cells || [], s = 14, R = ['haut', 'milieu', 'bas'], Cn = ['gauche', 'centre', 'droite']; let worst = -1, wm = 0;
+  g.fillStyle = 'rgba(2,9,20,.86)'; g.fillRect(x0 - 6, y0 - 12, 3 * s + 16, 3 * s + 34);
+  pxFont(g, 'RATÉS', x0, y0 - 3, '#7fa9cc', 5);
+  for (let i = 0; i < 9; i++) {
+    const [h, n] = C[i] || [0, 0], m = n ? 1 - h / n : 0, x = x0 + (i % 3) * (s + 2), y = y0 + Math.floor(i / 3) * (s + 2);
+    px(g, n ? `rgb(${Math.round(40 + 215 * m)},${Math.round(190 - 140 * m)},${Math.round(130 - 70 * m)})` : '#132033', x, y, s, s);
+    if (n) pxFont(g, String(Math.round(m * 100)), x + s / 2, y + s / 2 + 2, '#020007', 5, 'center');
+    if (n >= 3 && m > wm) { wm = m; worst = i; }
+  }
+  if (worst >= 0) pxFont(g, (worst === 4 ? 'centre' : R[Math.floor(worst / 3)] + ' ' + Cn[worst % 3]).replace('milieu centre', 'centre'), x0, y0 + 3 * (s + 2) + 7, '#ff9fae', 5);
+}
+// ---- les maps de la communauté ----
+const thMaps = () => gstore('neothaMaps', []);
+const thHash = s => { let h = 7; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) | 0; return (h >>> 0).toString(36); };
+const thB64 = u => new Promise((ok, ko) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1] || ''); fr.onerror = () => ko(fr.error); fr.readAsDataURL(new Blob([u])); });
+async function thBytes(n) { const b = await folder.readFile(n); if (b == null) throw new Error('les fichiers de cette map ne sont pas sur ce PC'); const t = atob(b), u = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) u[i] = t.charCodeAt(i); return u; }
+function thSspm(buf) {  // une map .sspm (Sound Space Plus / Rhythia, version 1 ou 2) -> {name, mapper, notes: [[ms, x, y]], audio}
+  const u = new Uint8Array(buf), dv = new DataView(u.buffer, u.byteOffset, u.byteLength), dec = new TextDecoder(); let p = 0;
+  const need = k => { if (!(k >= 0) || p + k > u.length) throw new Error('fichier .sspm incomplet ou abîmé'); };
+  const u8 = () => (need(1), u[p++]), u16 = () => (need(2), p += 2, dv.getUint16(p - 2, true)), u32 = () => (need(4), p += 4, dv.getUint32(p - 4, true)), f32 = () => (need(4), p += 4, dv.getFloat32(p - 4, true));
+  const u64 = () => { const lo = u32(), hi = u32(); return hi * 2 ** 32 + lo; }, str16 = () => { const n = u16(); need(n); p += n; return dec.decode(u.subarray(p - n, p)); };
+  const line = () => { const i = u.indexOf(10, p); if (i < 0) throw new Error('fichier .sspm abîmé'); const s = dec.decode(u.subarray(p, i)); p = i + 1; return s.trim(); };
+  if (u.length < 8 || dec.decode(u.subarray(0, 4)) !== 'SS+m') throw new Error('ce n\'est pas une map .sspm');
+  p = 4; const ver = u16();
+  if (ver === 1) {
+    while (p < u.length && u[p] === 0) p++;  // les octets réservés
+    const id = line(), name = line(), mapper = line(); u32(); const n = u32(); u8();
+    if (u8()) { const l = u64(); need(l); p += l; }  // l'image de couverture
+    let audio = null; if (u8()) { const l = u64(); need(l); audio = u.slice(p, p + l); p += l; }
+    const notes = []; for (let i = 0; i < n; i++) { const ms = u32(); notes.push(u8() ? [ms, f32(), f32()] : [ms, u8(), u8()]); }
+    return {name: name || id, mapper, notes, audio};
+  }
+  if (ver !== 2) throw new Error('map .sspm en version ' + ver + ', pas encore prise en charge');
+  p = 10 + 20; u32(); u32(); const nm = u32(); u8(); u16(); const ha = u8(); u8(); u8();
+  const P = Array.from({length: 5}, () => [u64(), u64()]);  // données perso, son, image, définitions, marqueurs : [début, longueur]
+  const id = str16(), name = str16(), song = str16(), mappers = Array.from({length: u16()}, str16);
+  let audio = null; if (ha && P[1][1]) { p = P[1][0]; need(P[1][1]); audio = u.slice(p, p + P[1][1]); }
+  p = P[3][0]; const defs = Array.from({length: u8()}, () => { const nm = str16(), types = Array.from({length: u8()}, u8); if (u[p] === 0) p++; return {nm, types}; });
+  const skip = t => { if (t === 1) p += 1; else if (t === 2) p += 2; else if (t === 3 || t === 5) p += 4; else if (t === 4 || t === 6) p += 8; else if (t === 7) p += u8() ? 8 : 2; else if (t === 8 || t === 9) p += u16(); else if (t === 10 || t === 11) p += u32(); else if (t === 12) { const it = u8(), n = u16(); for (let i = 0; i < n; i++) skip(it); } else throw new Error('map .sspm d\'un format inconnu'); need(0); };
+  p = P[4][0]; const notes = [];
+  for (let i = 0; i < nm; i++) {
+    const ms = u32(), d = defs[u8()]; if (!d) throw new Error('map .sspm abîmée');
+    if (d.nm === 'ssp_note' && d.types[0] === 7) { notes.push(u8() ? [ms, f32(), f32()] : [ms, u8(), u8()]); d.types.slice(1).forEach(skip); } else d.types.forEach(skip);
+  }
+  return {name: song || name || id, mapper: mappers.join(', '), notes, audio};
+}
+function thSsTxt(txt) {  // une map Sound Space en texte : « id,x|y|ms,x|y|ms,… »
+  const notes = String(txt).trim().split(',').slice(1).map(s => s.split('|').map(Number)).filter(a => a.length === 3 && a.every(Number.isFinite)).map(([x, y, ms]) => [ms, x, y]);
+  if (!notes.length) throw new Error('aucune note dans ce fichier'); return {notes};
+}
+{ // contrôle : une petite map .sspm v1 (2 notes, une sur la grille, une libre) et une map en texte
+  const B = [...new TextEncoder().encode('SS+m'), 1, 0, 0, 0, ...new TextEncoder().encode('id\nNom\nMoi\n')], w32 = v => B.push(v & 255, v >> 8 & 255, v >> 16 & 255, v >>> 24), f = new DataView(new ArrayBuffer(4));
+  w32(2000); w32(2); B.push(1, 0, 1); w32(3); w32(0); B.push(9, 8, 7); w32(500); B.push(0, 2, 0); w32(1500); B.push(1); for (const v of [1.5, .5]) { f.setFloat32(0, v, true); B.push(...new Uint8Array(f.buffer)); }
+  const m = thSspm(new Uint8Array(B).buffer), t = thSsTxt('123,0|2|100,1|1|400');
+  console.assert(m.name === 'Nom' && m.mapper === 'Moi' && m.audio.join() === '9,8,7' && m.notes.length === 2 && m.notes[0].join() === '500,2,0' && m.notes[1][1] === 1.5 && t.notes[1].join() === '400,1,1', 'thSspm', m, t);
+}
+const thAudioExt = u => u[0] === 0x4f && u[1] === 0x67 ? 'ogg' : u[0] === 0x66 && u[1] === 0x4c ? 'flac' : u[0] === 0x52 && u[1] === 0x49 ? 'wav' : 'mp3';
+const thMapNotes = L => L.slice().sort((a, b) => a[0] - b[0]).map(([ms, x, y], i) => ({t: ms / 1000, len: 0, u: thClamp(x - 1, -1.4, 1.4) * .95, v: thClamp(y - 1, -1.4, 1.4) * .95, col: TH.COL[i & 1], pat: 'map', judged: false}));
+async function thMapImport(files) {
+  const msg = t => { $('rhImpMsg').textContent = t; }, fs = [...files], mf = fs.find(f => /\.(sspm|txt)$/i.test(f.name));
+  if (!mf) throw new Error('choisis une map .sspm (ou un .txt de Sound Space avec sa musique)');
+  msg('Lecture de « ' + mf.name + ' »…');
+  let M, audio;
+  if (/\.sspm$/i.test(mf.name)) { M = thSspm(await mf.arrayBuffer()); audio = M.audio; }
+  else { const af = fs.find(f => f !== mf); if (!af) throw new Error('choisis le .txt et sa musique en même temps'); M = thSsTxt(await mf.text()); M.name = mf.name.replace(/\.txt$/i, ''); audio = new Uint8Array(await af.arrayBuffer()); }
+  if (!audio?.length) throw new Error('la map n\'a pas de musique'); if (audio.length > 20e6) throw new Error('la musique fait plus de 20 Mo');
+  if (!M.notes.length) throw new Error('la map est vide');
+  const ms = M.notes.map(n => n[0]), last = Math.max(...ms), id = 'sspm' + thHash(M.name + '|' + M.notes.length + '|' + last), ext = thAudioExt(audio), len = last / 1000;
+  msg('Copie de la musique…');
+  await folder.writeFile(id + '.json', await thB64(new TextEncoder().encode(JSON.stringify(M.notes))));
+  await folder.writeFile(id + '-audio.' + ext, await thB64(audio));
+  const e = {id, name: M.name || 'Map', mapper: M.mapper || '', n: M.notes.length, len: Math.round(len), ext, stars: Math.max(1, Math.min(10, Math.round(M.notes.length / Math.max(20, len) * 1.1))), d: Date.now()};
+  const L = thMaps(), o = L.findIndex(x => x.id === id); if (o >= 0) L[o] = e; else L.push(e);
+  thMapCache.delete(id); saveGames(); rhTab = 'mine'; rhList(); msg('« ' + e.name + ' » importée : ' + e.n + ' notes.');
+  await rhSelect(id, 'M');
+}
+const thMapCache = new Map();
+async function thMapLoad(m) {  // -> {notes, buffer}, gardé tant que NeoTha est ouvert
+  if (thMapCache.has(m.id)) return thMapCache.get(m.id);
+  rhAudio(); const notes = JSON.parse(new TextDecoder().decode(await thBytes(m.id + '.json'))), a = await thBytes(m.id + '-audio.' + m.ext);
+  const C = {notes, buffer: await rhCtx.decodeAudioData(a.buffer)}; thMapCache.set(m.id, C); return C;
+}
+function thMapBpm(notes) {  // le tempo à peu près, d'après l'écart le plus courant entre deux notes (pour le battement du tunnel)
+  const g = notes.slice(1).map((n, i) => n.t - notes[i].t).filter(x => x > .08 && x < 2).sort((a, b) => a - b); let b = g.length ? 60 / g[g.length >> 1] : 120;
+  while (b < 90) b *= 2; while (b > 200) b /= 2; return Math.round(b);
+}
+async function thMapDrop(id) {
+  try { for (const n of await folder.listFiles()) if (n.startsWith(id)) await folder.removeFile(n); } catch {}
+  games.neothaMaps = thMaps().filter(x => x.id !== id); thMapCache.delete(id); saveGames(); rhList();
+}
+function thMapCards() {
+  const res = games.neotha || {};
+  return thMaps().map(m => {
+    const c = el('div', 'sysCard px rhSong' + (rh?.song === m.id ? ' on' : '')), x = el('button', 'rhDel', '×'), r = res[m.id + 'M'], b = el('button', 'btn px' + (rh?.song === m.id ? ' main' : ''), 'JOUER · ' + m.stars + '★' + (r ? ' · ' + r.grade : '')), row = el('div', 'row');
+    x.title = 'Retirer cette map'; x.onclick = () => thMapDrop(m.id);
+    if (r) b.title = r.score + ' points · ' + r.acc + ' % · combo ' + r.combo;
+    b.onclick = () => { $('rhImpMsg').textContent = 'Préparation de la map…'; rhSelect(m.id, 'M').then(() => { $('rhImpMsg').textContent = ''; }, e => { $('rhImpMsg').textContent = 'Impossible : ' + e.message; }); };
+    row.append(b); c.append(x, el('b', '', m.name), el('span', 'hint', 'Map' + (m.mapper ? ' de ' + m.mapper : '') + ' · ' + m.n + ' notes · ' + clock(m.len)), row);
+    return c;
+  });
+}
 function rhDiffRow(key, sel, play, imp) {
   const res = games?.neotha || {}, row = el('div', 'row');
   if (imp?.stars) { const d = 'S' + imp.stars, r = res[key + d], b = el('button', 'btn px' + (sel && rh?.diff === d ? ' main' : ''), 'JOUER · ' + imp.stars + '★' + (r ? ' · ' + r.grade : '')); if (r) b.title = r.score + ' points · ' + r.acc + ' % · combo ' + r.combo; b.onclick = () => play(d); row.append(b); return row; }
@@ -1134,7 +1284,7 @@ function rhPager(order) {  // 1200 chansons : 50 par page (sinon la liste est tr
 }
 function rhList() {
   $('rhTabSongs').classList.toggle('on', rhTab === 'songs'); $('rhTabMine').classList.toggle('on', rhTab === 'mine');
-  $('rhTabMine').textContent = 'MES MUSIQUES · ' + rhImports().length;
+  $('rhTabMine').textContent = 'MES MUSIQUES · ' + (rhImports().length + thMaps().length);
   $('rhImport').style.display = rhTab === 'mine' ? '' : 'none';
   if (rhTab === 'mine' && !$('rhMuList').options.length) rhFillNeoMusic();
   if (rhTab === 'songs') {
@@ -1149,7 +1299,7 @@ function rhList() {
     }), bar());
   }
   const list = rhImports();
-  $('rhSongs').replaceChildren(...(list.length ? list.map(imp => {
+  $('rhSongs').replaceChildren(...thMapCards(), ...(list.length ? list.map(imp => {
     const c = el('div', 'sysCard px rhSong' + (rh?.song === imp.id ? ' on' : '')), x = el('button', 'rhDel', '×');
     x.title = 'Retirer ce niveau (la musique reste dans NeoMusic)';
     x.onclick = () => { games.neothaImports = list.filter(o => o !== imp); rhAnalysed.delete(imp.id); saveGames(); rhList(); };
@@ -1178,9 +1328,10 @@ let thCurStyle = 'dot', thRect = null; for (const ev of ['resize', 'scroll', 'fu
 const thCv = () => $('rhCanvas');
 const thLock = () => { const c = thCv(); try { const p = c.requestPointerLock?.({unadjustedMovement: true}); p?.catch?.(() => { try { c.requestPointerLock()?.catch?.(() => {}); } catch {} }); } catch { try { c.requestPointerLock(); } catch {} } };  // comme dans Rhythia : la souris est capturée pendant la partie (Échap pour la libérer)
 const thAim = e => {
-  if (!rh) return; const r = thRect ||= thCv().getBoundingClientRect();
+  if (!rh || rh.replay) return; const r = thRect ||= thCv().getBoundingClientRect();
   if (document.pointerLockElement === thCv()) { rh.mx = thClamp(rh.mx + e.movementX / r.width * TH.W * 1.5, 0, TH.W); rh.my = thClamp(rh.my + e.movementY / r.width * TH.W * 1.5, 0, TH.H); }
   else { rh.mx = thClamp((e.clientX - r.left) / r.width * TH.W, 0, TH.W); rh.my = thClamp((e.clientY - r.top) / r.height * TH.H, 0, TH.H); }
+  if (thVal('thLock', '0') === '1') { const F = 1.45 * TH.K + 6; rh.mx = thClamp(rh.mx, TH.CX - F, TH.CX + F); rh.my = thClamp(rh.my, TH.CY - F, TH.CY + F); }  // bloqué : il ne sort pas du champ
 };
 thCv().onpointermove = thAim;
 thCv().onpointerdown = e => { if (!rh) return; thRect = null; if (document.pointerLockElement !== thCv()) thAim(e); if (rh.mode !== 'play') { rhPress(); if (rh.mode === 'play') thLock(); } };
@@ -1189,6 +1340,7 @@ document.addEventListener('keydown', e => {
   if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || !view.classList.contains('on') || !rh) return;
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (k === ' ') { e.preventDefault(); if (!e.repeat && rh.mode !== 'play') { rhPress(); if (rh.mode === 'play') thLock(); } }
+  if (k === 'r' && rh.mode === 'over' && rh.rec?.length && !rh.replay) { e.preventDefault(); thReplay(); }
   if (k === 'p' && rh.mode === 'play') { rh.mode = 'pause'; rhCtx?.suspend(); try { document.exitPointerLock(); } catch {} }
 });
 
@@ -1197,9 +1349,31 @@ $('rhOffset').addEventListener('change', () => { rhOffMs = +$('rhOffset').value;
 $('thCur').addEventListener('change', () => { thCurStyle = $('thCur').value; });
 $('rhClick').onchange = () => { rhAudio(); rhCtx.resume(); rhClick(); };  // le son choisi, pour l'entendre
 $('rhVol').oninput = () => { if (rhOut) rhOut.gain.value = +$('rhVol').value / 100 * .6; };
-for (const id of ['rhVol', 'rhClick', 'rhOffset', 'thCur']) $(id).addEventListener('change', () => { gstore('neothaPrefs', {})[id] = $(id).value; saveGames(); });
+const TH_PREFS = ['rhVol', 'rhClick', 'rhOffset', 'thCur', 'thAr', 'thDist', 'thSize', 'thColor', 'thPar', 'thLock', 'thChal', 'thRate'];
+for (const id of TH_PREFS) $(id).addEventListener('change', () => { gstore('neothaPrefs', {})[id] = $(id).value; saveGames(); });
+$('thChal').addEventListener('change', () => { if (rh && (rh.mode === 'ready' || rh.mode === 'over')) rhSelect(rh.song, rh.diff); });  // le niveau se refait avec le défi
+/* ---------- 1.8.0 : la vitesse du morceau (0,75× à 1,5×, un record à part pour chacune) et revoir sa partie ---------- */
+function thRecAt(R, t) {  // la position du curseur notée au temps t (entre deux relevés : au milieu du chemin)
+  const ms = t * 1000; let a = 0, b = R.length - 1; if (b < 0) return [TH.CX, TH.CY];
+  while (a < b) { const m = (a + b + 1) >> 1; if (R[m][0] <= ms) a = m; else b = m - 1; }
+  const p = R[a], q = R[a + 1]; if (!q || ms <= p[0]) return [p[1] / 4, p[2] / 4];
+  const f = Math.min(1, (ms - p[0]) / Math.max(1, q[0] - p[0])); return [(p[1] + (q[1] - p[1]) * f) / 4, (p[2] + (q[2] - p[2]) * f) / 4];
+}
+{ const R = [[0, 0, 0], [100, 40, 80]]; const [x, y] = thRecAt(R, .05); console.assert(x === 5 && y === 10 && thRecAt(R, 9)[0] === 10 && thRecAt([], 1)[0] === TH.CX, 'thRecAt'); }
+async function thReplay() {  // la partie qui vient de finir, rejouée avec sa musique et son curseur
+  if (!rh?.rec?.length || rh.mode !== 'over') return; const R = rh.rec;
+  await rhSelect(rh.song, rh.diff); if (!rh || rh.mode !== 'ready') return; rh.replay = R; rhBegin();
+}
+function thModsUi() {
+  $('thModRow').replaceChildren(el('span', 'hint', 'Mods'), ...TH_MODS.map(([k, label, tip]) => { const b = el('button', 'btn px' + (thMods.has(k) ? ' main' : ''), label); b.title = tip;
+    b.onclick = () => { if (thMods.has(k)) thMods.delete(k); else thMods.add(k); gstore('neothaPrefs', {}).mods = [...thMods]; saveGames(); b.blur(); thModsUi(); if (rh && (rh.mode === 'ready' || rh.mode === 'over')) rhSelect(rh.song, rh.diff); };
+    return b; }));
+}
+$('thMapBtn').onclick = () => $('thMap').click();
+$('thMap').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) thMapImport(fs).catch(err => { $('rhImpMsg').textContent = 'Import impossible : ' + err.message; }); };
 function rhOpen() {
-  const p = games.neothaPrefs || {}; for (const id of ['rhVol', 'rhClick', 'rhOffset', 'thCur']) if (p[id] != null) $(id).value = p[id];
+  const p = games.neothaPrefs || {}; for (const id of TH_PREFS) if (p[id] != null) $(id).value = p[id];
+  thMods = new Set((p.mods || []).filter(m => TH_MODS.some(x => x[0] === m))); thModsUi(); thLvlShow();
   rhOffMs = +$('rhOffset').value; thCurStyle = $('thCur').value;
   if (rh) { rhList(); return gameLoop(rh, 'neodex:neotha', rhUpdate, rhDraw); }
   const last = games.neothaLast || {song: 0, diff: 'normal'}; rhSelect(last.song, last.diff).catch(() => rhSelect(0, 'normal'));  // an imported music may be missing on this PC
